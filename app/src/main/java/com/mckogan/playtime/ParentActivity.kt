@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.provider.Settings
 import android.text.InputType
 import android.widget.EditText
@@ -40,6 +41,7 @@ class ParentActivity : Activity() {
     override fun onResume() {
         super.onResume()
         keepOpen = false
+        GuardService.start(this)
         if (!isFinishing) render()
     }
 
@@ -54,40 +56,61 @@ class ParentActivity : Activity() {
         val root = Ui.column(this, 20)
         root.add(Ui.text(this, "Parent controls", 28f, bold = true))
 
-        root.add(section("Setup"), topMarginDp = 20)
-        val guardOn = GuardService.isEnabled(this)
+        root.add(section("Permissions"), topMarginDp = 20)
+        val guardOn = GuardService.isReady(this)
         root.add(
             Ui.text(
                 this,
-                if (guardOn) "✅ Guard is on" else "⚠️ Guard is off — games are not being timed",
+                if (guardOn) "✅ Guard is on" else "⚠️ Guard is off — turn on the first two below",
                 16f,
                 if (guardOn) Ui.TEXT else Ui.DANGER,
+                bold = true,
             ),
             topMarginDp = 8,
         )
-        if (!guardOn) {
-            root.add(Ui.button(this, "Turn on guard") { openSystem(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }, topMarginDp = 8)
-            root.add(
-                Ui.text(
-                    this,
-                    "In the list, open \"Play Time\" and switch it on. If it is greyed out: App info → ⋮ → Allow restricted settings.",
-                    14f,
-                    Ui.MUTED,
-                ),
-                topMarginDp = 6,
-            )
-            root.add(Ui.button(this, "Open App info", Ui.MUTED) {
-                openSystem(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
-            }, topMarginDp = 8)
-        }
-        if (Build.VERSION.SDK_INT >= 33 &&
-            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) {
-            root.add(Ui.button(this, "Allow notifications", Ui.MUTED) {
-                keepOpen = true
-                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0)
-            }, topMarginDp = 8)
-        }
+        root.add(
+            permissionRow(
+                "Usage access",
+                "Lets Play Time see which game is open. Find Play Time in the list and allow it.",
+                GuardService.hasUsageAccess(this),
+            ) { openSystem(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) },
+            topMarginDp = 10,
+        )
+        root.add(
+            permissionRow(
+                "Display over other apps",
+                "Lets Play Time cover a game when time is up.",
+                GuardService.canOverlay(this),
+            ) {
+                openSystem(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
+            },
+            topMarginDp = 10,
+        )
+        root.add(
+            permissionRow(
+                "Notifications",
+                "Shows the time left and the Pause button.",
+                Build.VERSION.SDK_INT < 33 ||
+                    checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED,
+            ) {
+                openSystem(
+                    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                )
+            },
+            topMarginDp = 10,
+        )
+        root.add(
+            permissionRow(
+                "Battery: unrestricted",
+                "Stops the phone from switching the guard off to save battery.",
+                getSystemService(PowerManager::class.java)!!.isIgnoringBatteryOptimizations(packageName),
+            ) {
+                openSystem(
+                    Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName"))
+                )
+            },
+            topMarginDp = 10,
+        )
 
         root.add(section("Children"), topMarginDp = 24)
         val active = store.activeKid()
@@ -123,6 +146,14 @@ class ParentActivity : Activity() {
             setBackgroundColor(Ui.BG)
             addView(root)
         })
+    }
+
+    private fun permissionRow(title: String, hint: String, granted: Boolean, turnOn: () -> Unit): LinearLayout {
+        val card = Ui.card(this)
+        card.add(Ui.text(this, (if (granted) "✅ " else "⬜ ") + title, 18f, bold = true))
+        card.add(Ui.text(this, hint, 14f, Ui.MUTED), topMarginDp = 2)
+        if (!granted) card.add(Ui.button(this, "Turn on", sizeSp = 16f, onClick = turnOn), topMarginDp = 10)
+        return card
     }
 
     private fun section(title: String) = Ui.text(this, title, 20f, Ui.ACCENT, bold = true)

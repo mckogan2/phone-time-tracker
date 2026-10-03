@@ -43,6 +43,8 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        GuardService.start(this)
+        GuardService.instance?.hideCover()
         render()
     }
 
@@ -79,7 +81,7 @@ class MainActivity : Activity() {
         root.add(Ui.text(this, title, 30f, bold = true, center = true))
         root.add(Ui.text(this, subtitle, 16f, Ui.MUTED, center = true), topMarginDp = 4)
 
-        if (!GuardService.isEnabled(this)) {
+        if (!GuardService.isReady(this)) {
             val banner = Ui.card(this, 0xFFFFE3D6.toInt())
             banner.add(Ui.text(this, "Setup needed: a parent must turn on the Play Time guard.", 15f))
             root.add(banner, topMarginDp = 16)

@@ -22,11 +22,8 @@ jobs:
       - name: Build
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon assembleFullRelease assembleFullDebug assembleNoguardRelease
-          cp app/build/outputs/apk/full/release/app-full-release.apk PlayTime.apk
-          # Install-troubleshooting builds (see README):
-          cp app/build/outputs/apk/full/debug/app-full-debug.apk PlayTime-testA-debug.apk
-          cp app/build/outputs/apk/noguard/release/app-noguard-release.apk PlayTime-testB-noguard.apk
+          ./gradlew --no-daemon assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk PlayTime.apk
 
       # Fails the job if the APK isn't properly signed or can't be read, and logs
       # the package name, SDK levels and signing certificate.
@@ -40,13 +37,17 @@ jobs:
             if "$BT/aapt2" dump badging "$apk" | grep -q testOnly; then
               echo "$apk is marked testOnly and would not install"; exit 1
             fi
+            # Phones block sideloaded apps that declare an Accessibility Service.
+            if "$BT/aapt2" dump badging "$apk" | grep -q "provides-component:'accessibility'"; then
+              echo "$apk declares an Accessibility Service and will be refused by the phone"; exit 1
+            fi
           done
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: PlayTime-apk
-          path: PlayTime*.apk
+          path: PlayTime.apk
 
       # Publish a "latest" release so the APK can be downloaded straight from the
       # phone's browser (no zip).
@@ -60,4 +61,4 @@ jobs:
           make_latest: true
           target_commitish: ${{ github.sha }}
           body: "Built from ${{ github.ref_name }} @ ${{ github.sha }}"
-          files: PlayTime*.apk
+          files: PlayTime.apk

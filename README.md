@@ -13,7 +13,9 @@ A small Android app that gives each child their own daily game-time budget on a 
 
 ## How it works
 
-A normal app can't close other apps. Play Time uses an **Accessibility Service** (the "guard") that only looks at *which app* is in front, never at what's on screen. When a game is open without a selected child, or with no time left, the guard puts Play Time's own screen on top of it.
+A normal app can't close other apps. Play Time runs a small background "guard" that checks once a second *which app* is in front (using **Usage access**; it never sees what's on screen). When a game is open without a selected child, or with no time left, the guard covers it with Play Time's own screen (using **Display over other apps**).
+
+Play Time deliberately does **not** use an Accessibility Service: phones (Samsung with Play Protect, for example) refuse to install apps from outside the Play Store that ask for Accessibility access.
 
 ## Getting the app onto the phone
 
@@ -21,13 +23,16 @@ A normal app can't close other apps. Play Time uses an **Accessibility Service**
    https://github.com/mckogan2/phone-time-tracker/releases/latest/download/PlayTime.apk
    (Backup: GitHub → **Actions** → latest *Build APK* run → **PlayTime-apk**, a zip to extract.)
 2. **Install it.** Open `PlayTime.apk` on the phone and allow your browser/Files app to "install unknown apps". If it says **"App not installed"**, see *Troubleshooting* below.
-3. **Android 13 and newer:** Settings → Apps → Play Time → ⋮ (top right) → **Allow restricted settings**. Without this, Android won't let you turn on the guard for an app that didn't come from the Play Store.
-4. Open **Play Time** → **🔒 Parents** → create a 4-digit PIN.
-5. Tap **Turn on guard** → find *Play Time* in the list → switch it **on**.
-6. Tap **Allow notifications** (this shows the remaining time and the Pause button).
-7. Tap **Choose games** and tick the games the kids play.
-8. Switch on **Lock phone Settings with PIN**.
-9. Recommended: Settings → Apps → Play Time → Battery → **Unrestricted**, so the phone doesn't shut the guard down. This matters most on Xiaomi, Huawei, Oppo and Samsung phones.
+3. Open **Play Time** → **🔒 Parents** → create a 4-digit PIN.
+4. Under **Permissions**, tap **Turn on** for each item and come back:
+   - **Usage access**: find *Play Time* in the list → allow.
+   - **Display over other apps**: switch it on.
+   - **Notifications**: allow (shows the time left and the Pause button).
+   - **Battery: unrestricted**: allow, so the phone doesn't switch the guard off.
+
+   When the first two are on, the screen shows **✅ Guard is on**.
+5. Tap **Choose games** and tick the games the kids play.
+6. Switch on **Lock phone Settings with PIN**.
 
 ## Testing it at home
 
@@ -37,10 +42,12 @@ A normal app can't close other apps. Play Time uses an **Accessibility Service**
 - [ ] Parents → Edit Or → set to 1 minute → play → "Time's up, Or!" appears and Shahar can still play.
 - [ ] Turn the screen off while playing → turn it on and open the game → it asks again.
 - [ ] Open the phone's Settings app → it asks for the PIN.
+- [ ] Restart the phone → the "Play Time is on" notification comes back.
 - [ ] Next day, both clocks are back to 45:00.
 
 ## Troubleshooting: "App not installed"
 
+- **Test versions installed?** Uninstall "Play Time (test A/B)" first.
 - **An older Play Time is installed.** Settings → Apps → search "Play Time" → Uninstall, then install again. (Builds from before Oct 3, 2026 used a different app ID and signing key.)
 - **Play Protect** may ask about an unknown app: choose *More details → Install anyway*.
 - **Storage full:** free up some space.
@@ -60,7 +67,8 @@ Open the project in Android Studio, or run `./gradlew assembleRelease` with the 
 
 | File | What it does |
 | --- | --- |
-| `GuardService.kt` | Accessibility service: watches the foreground app, counts time, blocks games, Settings lock, notification |
+| `GuardService.kt` | Foreground service: watches the foreground app (Usage access), counts time, covers games (overlay), Settings lock, notification |
+| `BootReceiver.kt` | Restarts the guard after a reboot or update |
 | `Store.kt` | Children, daily usage, games, PIN (salted hash) — saved in SharedPreferences |
 | `MainActivity.kt` | Kids' screen / "Who's playing?" / "Time's up" |
 | `PinActivity.kt` | PIN pad (create, parent entry, Settings unlock) |

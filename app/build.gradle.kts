@@ -28,26 +28,12 @@ android {
     }
 
     buildTypes {
-        // Install-troubleshooting build: standard Android debug key and its own app ID,
-        // like a typical Android Studio "app-debug.apk".
         debug {
-            applicationIdSuffix = ".debug"
+            signingConfig = signingConfigs.getByName("playtime")
         }
         release {
             isMinifyEnabled = false
             signingConfig = signingConfigs.getByName("playtime")
-        }
-    }
-
-    // "noguard" is an install-troubleshooting build without the accessibility service.
-    flavorDimensions += "guard"
-    productFlavors {
-        create("full") {
-            dimension = "guard"
-        }
-        create("noguard") {
-            dimension = "guard"
-            applicationIdSuffix = ".noguard"
         }
     }
 

@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Play Time</string>
-    <string name="guard_description">Play Time watches which game is open so it can count each child\'s daily game time and show the \"Time\'s up\" screen when it runs out. It does not read anything on the screen.</string>
 </resources>

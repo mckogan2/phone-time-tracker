@@ -52,6 +52,11 @@ class PinActivity : Activity() {
         refresh()
     }
 
+    override fun onResume() {
+        super.onResume()
+        GuardService.instance?.hideCover()
+    }
+
     @Deprecated("Activity.onBackPressed is fine for a no-AndroidX app")
     override fun onBackPressed() {
         if (mode == MODE_SETTINGS) {
