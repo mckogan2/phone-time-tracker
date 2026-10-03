@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "954216593471",
+    "project_id": "play-time-cc351",
+    "storage_bucket": "play-time-cc351.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:954216593471:android:773d6918a93db145fae08a",
+        "android_client_info": {
+          "package_name": "com.mckogan.playtime"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCP3pkGBD34DU382y0zhEyriLw1twTcNAo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
