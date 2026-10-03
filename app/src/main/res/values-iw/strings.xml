@@ -160,4 +160,16 @@
     <string name="hours_closed_morning">המשחקים מתחילים ב-%1$s ☀️</string>
     <string name="hours_closed_night">נגמרו המשחקים להיום 🌙 נתראה מחר ב-%1$s</string>
     <string name="hours_subtitle">הזמן שלך נשמר להמשך</string>
+    <string name="use_pin">שימוש בקוד</string>
+    <string name="use_fingerprint">טביעת אצבע במקום קוד</string>
+    <string name="section_my_apps">האפליקציות שלי (הורים)</string>
+    <string name="my_apps_hint">אפליקציות כמו אינסטגרם ישאלו \"לכמה זמן?\" לפני שהן נפתחות, וכשהזמן נגמר — \"רוצה עוד?\" עם המתנה של 30 שניות. רק בטלפון הזה.</string>
+    <string name="my_apps_choose">בחירת האפליקציות שלי</string>
+    <string name="myapp_who">מי משתמש?</string>
+    <string name="myapp_parent">👤 הורה</string>
+    <string name="myapp_close">סגירה</string>
+    <string name="myapp_how_long">לכמה זמן?</string>
+    <string name="myapp_time_up">הזמן נגמר. רוצה עוד?</string>
+    <string name="myapp_more">כן, עוד</string>
+    <string name="myapp_breathe">לנשום רגע… או לסגור 🙂</string>
 </resources>

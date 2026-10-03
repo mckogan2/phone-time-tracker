@@ -156,4 +156,16 @@
     <string name="hours_closed_morning">Games start at %1$s ☀️</string>
     <string name="hours_closed_night">No more games today 🌙 See you tomorrow at %1$s</string>
     <string name="hours_subtitle">Your time is saved for later</string>
+    <string name="use_pin">Use PIN</string>
+    <string name="use_fingerprint">Use fingerprint instead of the PIN</string>
+    <string name="section_my_apps">My apps (parents)</string>
+    <string name="my_apps_hint">Apps like Instagram ask \"how long?\" before they open, and \"want more?\" with a 30-second wait when the time is up. This phone only.</string>
+    <string name="my_apps_choose">Choose my apps</string>
+    <string name="myapp_who">Who\'s using it?</string>
+    <string name="myapp_parent">👤 Parent</string>
+    <string name="myapp_close">Close</string>
+    <string name="myapp_how_long">For how long?</string>
+    <string name="myapp_time_up">Your time is up. Want more?</string>
+    <string name="myapp_more">Yes, more</string>
+    <string name="myapp_breathe">Take a breath… or close it 🙂</string>
 </resources>

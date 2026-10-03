@@ -67,8 +67,11 @@ class GuardService : Service() {
 
     private val screenOffReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            // Phone put down: stop the clock. Next game launch asks "Who's playing?" again.
+            // Phone put down: stop the clock. Next game launch asks "Who's playing?" again,
+            // and the parent's own apps ask "how long?" again.
             store.pause()
+            store.endAllMyApps()
+            myAppSeen.clear()
             updateNotification()
         }
     }
@@ -145,7 +148,20 @@ class GuardService : Service() {
                 if (System.currentTimeMillis() - since > AWAY_PAUSE_MS) store.pause()
             }
         }
-        if (changed || inGame || foregroundPkg in PROTECTED_PACKAGES) enforce()
+        // The parent's own apps: count the chosen session only while the app is on screen.
+        val myApp = foregroundPkg?.takeIf { it in store.myApps() }
+        val wallNow = System.currentTimeMillis()
+        if (myApp != null && power.isInteractive) {
+            val left = store.myAppLeftMs(myApp)
+            if (left > 0) store.setMyAppLeftMs(myApp, left - delta)
+            myAppSeen[myApp] = wallNow
+        }
+        // Left the app for a while: the session ends, and the next open asks again.
+        myAppSeen.entries.removeAll { (pkg, seen) ->
+            (pkg != foregroundPkg && wallNow - seen > AWAY_PAUSE_MS).also { if (it) store.endMyApp(pkg) }
+        }
+
+        if (changed || inGame || myApp != null || foregroundPkg in PROTECTED_PACKAGES) enforce()
         val activeKid = if (parentPlaying) null else store.activeKid()
         updateBubble(activeKid, activeKid != null && inGame && cover == null && power.isInteractive)
         updateNotification()
@@ -189,6 +205,21 @@ class GuardService : Service() {
                 Intent(this, PinActivity::class.java).putExtra(PinActivity.EXTRA_MODE, PinActivity.MODE_SETTINGS),
                 getString(R.string.pin_needed),
             )
+            return
+        }
+
+        // The parent's own apps: "who's using?" before, "want more?" after the chosen time.
+        if (pkg in store.myApps()) {
+            if (store.myAppLeftMs(pkg) > 0) {
+                hideCover()
+            } else {
+                block(
+                    Intent(this, MyAppActivity::class.java)
+                        .putExtra(MyAppActivity.EXTRA_APP, pkg)
+                        .putExtra(MyAppActivity.EXTRA_MORE, store.myAppStarted(pkg)),
+                    appLabel(pkg),
+                )
+            }
             return
         }
 
@@ -441,6 +472,12 @@ class GuardService : Service() {
         }
         return builder.build()
     }
+
+    private val myAppSeen = mutableMapOf<String, Long>()
+
+    private fun appLabel(pkg: String): String = runCatching {
+        packageManager.getApplicationLabel(packageManager.getApplicationInfo(pkg, 0)).toString()
+    }.getOrDefault(pkg)
 
     private fun currentKeyboard(): String? =
         Settings.Secure.getString(contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD)

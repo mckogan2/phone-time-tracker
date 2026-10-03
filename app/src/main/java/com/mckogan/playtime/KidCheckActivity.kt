@@ -63,6 +63,7 @@ class KidCheckActivity : Activity() {
         }
         setContentView(root)
         refresh()
+        if (mode == Store.LOCK_PARENT) Fingerprint.ask(this, title) { pass() }
     }
 
     override fun onDestroy() {

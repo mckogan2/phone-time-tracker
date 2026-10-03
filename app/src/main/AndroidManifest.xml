@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Fingerprint/face instead of typing the parent PIN. -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <!-- Family sync. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- "Usage access": which app is on screen. Granted by the parent in Settings. -->
@@ -48,6 +50,13 @@
             android:excludeFromRecents="true"
             android:exported="false"
             android:taskAffinity="com.mckogan.playtime.pin" />
+
+        <activity
+            android:name=".MyAppActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:taskAffinity="com.mckogan.playtime.myapp" />
 
         <activity
             android:name=".WelcomeActivity"

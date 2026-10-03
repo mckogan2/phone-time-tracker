@@ -240,6 +240,15 @@ class ParentActivity : Activity() {
             root.add(times, topMarginDp = 8)
         }
         root.add(Ui.text(this, getString(R.string.hours_hint), 14f, Ui.MUTED), topMarginDp = 4)
+
+        // The parent's own apps (this phone only): "who's using? → 15/30 → want more?" friction.
+        root.add(section(getString(R.string.section_my_apps)), topMarginDp = 24)
+        root.add(Ui.text(this, getString(R.string.my_apps_hint), 14f, Ui.MUTED), topMarginDp = 4)
+        val mine = store.sortByRecentUse(store.myApps().map { it to label(it) }, { it.first }, { it.second })
+        if (mine.isNotEmpty()) {
+            root.add(Ui.text(this, mine.joinToString("\n") { "📱 ${it.second}" }, 16f), topMarginDp = 8)
+        }
+        root.add(Ui.button(this, getString(R.string.my_apps_choose), Ui.MUTED) { chooseMyApps() }, topMarginDp = 8)
     }
 
     private fun settingsTab(root: LinearLayout, guardOn: Boolean) {
@@ -309,6 +318,12 @@ class ParentActivity : Activity() {
             textSize = 16f
             isChecked = store.protectSettings
             setOnCheckedChangeListener { _, checked -> store.protectSettings = checked }
+        }, topMarginDp = 8)
+        root.add(Switch(this).apply {
+            text = getString(R.string.use_fingerprint)
+            textSize = 16f
+            isChecked = store.useFingerprint
+            setOnCheckedChangeListener { _, checked -> store.useFingerprint = checked }
         }, topMarginDp = 8)
         root.add(Ui.button(this, getString(R.string.open_settings), Ui.MUTED) {
             openSystem(Intent(Settings.ACTION_SETTINGS))
@@ -631,6 +646,29 @@ class ParentActivity : Activity() {
                 sorted.forEachIndexed { i, (pkg, _) ->
                     if (checked[i] != (pkg in before)) store.setGameChoice(pkg, checked[i])
                 }
+                render()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun chooseMyApps() {
+        val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        val apps = packageManager.queryIntentActivities(launcher, 0)
+            .map { it.activityInfo.packageName }
+            .filter { it != packageName }
+            .distinct()
+            .map { it to label(it) }
+        val sorted = store.sortByRecentUse(apps, { it.first }, { it.second })
+        val selected = store.myApps().toMutableSet()
+        val checked = sorted.map { it.first in selected }.toBooleanArray()
+        AlertDialog.Builder(this)
+            .setTitle(R.string.my_apps_choose)
+            .setMultiChoiceItems(sorted.map { it.second }.toTypedArray(), checked) { _, i, isChecked ->
+                if (isChecked) selected += sorted[i].first else selected -= sorted[i].first
+            }
+            .setPositiveButton(R.string.save) { _, _ ->
+                store.setMyApps(selected)
                 render()
             }
             .setNegativeButton(R.string.cancel, null)

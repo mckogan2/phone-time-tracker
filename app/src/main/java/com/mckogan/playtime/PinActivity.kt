@@ -48,6 +48,13 @@ class PinActivity : Activity() {
         root.add(Ui.keypad(this) { press(it) }, topMarginDp = 24, fill = false)
         setContentView(root)
         refresh()
+        // Fingerprint first; the PIN pad stays underneath as the backup.
+        if (!creating) {
+            Fingerprint.ask(this, titleView.text.toString()) {
+                store.pinFailures = 0
+                onSuccess()
+            }
+        }
     }
 
     override fun onResume() {
@@ -119,7 +126,7 @@ class PinActivity : Activity() {
         when (mode) {
             MODE_PARENT -> startActivity(Intent(this, ParentActivity::class.java))
             MODE_SETTINGS -> store.unlockSettings()
-            MODE_SETUP -> setResult(RESULT_OK)
+            MODE_SETUP, MODE_VERIFY -> setResult(RESULT_OK)
         }
         finish()
     }
@@ -153,6 +160,9 @@ class PinActivity : Activity() {
         const val MODE_SETTINGS = "settings"
         const val MODE_CHANGE = "change"
         const val MODE_SETUP = "setup"
+
+        /** Just checks it's a parent (fingerprint or PIN) and returns RESULT_OK. */
+        const val MODE_VERIFY = "verify"
         private const val PIN_LENGTH = 4
         private const val MAX_FAILURES = 5
         private const val LOCKOUT_MS = 30_000L
