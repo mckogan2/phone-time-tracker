@@ -6,6 +6,7 @@ import android.animation.ValueAnimator
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
@@ -173,7 +174,14 @@ class MyAppActivity : Activity() {
             Facts.next(this@MyAppActivity)?.let { fact ->
                 add(Ui.text(this@MyAppActivity, listOf(fact.emoji, fact.text).filter { it.isNotEmpty() }.joinToString(" "), 18f, center = true), topMarginDp = 24)
                 if (fact.title.isNotEmpty()) {
-                    add(Ui.text(this@MyAppActivity, getString(R.string.fact_source, fact.title), 13f, Ui.MUTED, center = true), topMarginDp = 6)
+                    // Tap to read the whole article (this also leaves the wait, like Close).
+                    val link = Ui.text(this@MyAppActivity, getString(R.string.fact_source, fact.title), 14f, Ui.ACCENT, center = true).apply {
+                        paintFlags = paintFlags or Paint.UNDERLINE_TEXT_FLAG
+                        val p = dp(8)
+                        setPadding(p, p, p, p)
+                        setOnClickListener { openArticle(fact) }
+                    }
+                    add(link, topMarginDp = 2)
                 }
             }
             add(Ui.button(this@MyAppActivity, getString(R.string.myapp_close)) { close() }, topMarginDp = 24)
@@ -200,7 +208,17 @@ class MyAppActivity : Activity() {
         }
     }
 
-    private fun stopCountdown() {
+    private fun openArticle(fact: Facts.Fact) {
+        val url = fact.url.ifEmpty {
+            val lang = if (resources.configuration.locales[0].language in setOf("iw", "he")) "he" else "en"
+            "https://$lang.m.wikipedia.org/wiki/" + Uri.encode(fact.title.replace(' ', '_'))
+        }
+        store.endMyApp(pkg)
+        runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        finish()
+    }
+
+        private fun stopCountdown() {
         animator?.cancel()
         animator = null
     }
