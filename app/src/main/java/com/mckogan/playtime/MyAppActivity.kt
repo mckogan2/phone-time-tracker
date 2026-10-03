@@ -48,6 +48,8 @@ class MyAppActivity : Activity() {
             packageManager.getApplicationLabel(packageManager.getApplicationInfo(pkg, 0)).toString()
         }.getOrDefault(pkg)
         if (intent.getBooleanExtra(EXTRA_MORE, false)) askMore() else askWho()
+        // Get a fact ready in case the 30-second wait comes.
+        Facts.refill(this)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -167,6 +169,13 @@ class MyAppActivity : Activity() {
                 topMargin = dp(24)
                 gravity = Gravity.CENTER_HORIZONTAL
             })
+            // Something worth reading while waiting (if one is ready).
+            Facts.next(this@MyAppActivity)?.let { fact ->
+                add(Ui.text(this@MyAppActivity, listOf(fact.emoji, fact.text).filter { it.isNotEmpty() }.joinToString(" "), 18f, center = true), topMarginDp = 24)
+                if (fact.title.isNotEmpty()) {
+                    add(Ui.text(this@MyAppActivity, getString(R.string.fact_source, fact.title), 13f, Ui.MUTED, center = true), topMarginDp = 6)
+                }
+            }
             add(Ui.button(this@MyAppActivity, getString(R.string.myapp_close)) { close() }, topMarginDp = 24)
 
             animator = ValueAnimator.ofFloat(0f, 1f).apply {

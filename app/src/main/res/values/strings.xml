@@ -171,4 +171,5 @@
     <string name="my_apps_channel">My apps timer</string>
     <string name="myapp_notif_left">%1$s — time left</string>
     <string name="myapp_end_now">End now</string>
+    <string name="fact_source">📖 Wikipedia: %1$s</string>
 </resources>
