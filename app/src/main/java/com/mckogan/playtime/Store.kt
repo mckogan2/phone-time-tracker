@@ -264,6 +264,11 @@ class Store(context: Context) {
         get() = prefs.getBoolean(KEY_FINGERPRINT, true)
         set(value) = prefs.edit().putBoolean(KEY_FINGERPRINT, value).apply()
 
+    /** Light, dark, or follow the phone ([Ui.THEME_SYSTEM]). This phone only. */
+    var theme: String
+        get() = prefs.getString(KEY_THEME, null) ?: Ui.THEME_SYSTEM
+        set(value) = prefs.edit().putString(KEY_THEME, value).apply()
+
     // ---- My apps: the parent's own apps that ask "how long?" before opening (this phone only) ----
 
     fun myApps(): Set<String> = prefs.getStringSet(KEY_MY_APPS, emptySet())!!.toSet()
@@ -567,6 +572,7 @@ class Store(context: Context) {
         private const val KEY_GAMES = "games"
         private const val KEY_ONBOARDED = "onboarded"
         private const val KEY_FINGERPRINT = "use_fingerprint"
+        private const val KEY_THEME = "theme"
         private const val KEY_MY_APPS = "my_apps"
         private const val KEY_HOURS_ON = "hours_on"
         private const val KEY_HOURS_FROM = "hours_from"

@@ -24,8 +24,11 @@ class MainActivity : Activity() {
     private var reason: String? = null
     private var blockedGame: String? = null
     private var blockedKidId: String? = null
+    private var createdDark = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Ui.applyTheme(this)
+        createdDark = Ui.dark
         super.onCreate(savedInstanceState)
         store = Store(this)
         if (!store.onboarded) {
@@ -49,6 +52,12 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        // The theme was changed in the parent area: redraw this screen in it.
+        if (Ui.isDark(this) != createdDark) {
+            recreate()
+            return
+        }
+        Ui.dark = createdDark
         GuardService.start(this)
         GuardService.instance?.hideCover()
         Sync.start(this)
@@ -97,19 +106,19 @@ class MainActivity : Activity() {
         root.add(Ui.text(this, subtitle, 16f, Ui.MUTED, center = true), topMarginDp = 4)
 
         if (!GuardService.isReady(this)) {
-            val banner = Ui.card(this, 0xFFFFE3D6.toInt())
+            val banner = Ui.card(this, Ui.WARN_BG)
             banner.add(Ui.text(this, getString(R.string.setup_needed), 15f))
             root.add(banner, topMarginDp = 16)
         }
 
         if (!store.gamesAllowedNow() && reason != REASON_HOURS) {
-            val banner = Ui.card(this, 0xFFFFF1C2.toInt())
+            val banner = Ui.card(this, Ui.HOURS_BG)
             banner.add(Ui.text(this, GuardService.hoursClosedText(this, store), 17f, bold = true, center = true))
             root.add(banner, topMarginDp = 16)
         }
 
         if (store.parentPlaying()) {
-            val banner = Ui.card(this, 0xFFE6F0FF.toInt())
+            val banner = Ui.card(this, Ui.INFO_BG)
             banner.add(Ui.text(this, getString(R.string.parent_playing_until, Ui.formatTime(this, store.parentPlayingUntil)), 16f, bold = true))
             banner.add(Ui.button(this, getString(R.string.parent_playing_end), Ui.MUTED, 16f) {
                 store.parentPlayingUntil = 0L

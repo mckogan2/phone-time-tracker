@@ -162,6 +162,10 @@
     <string name="hours_subtitle">הזמן שלך נשמר להמשך</string>
     <string name="use_pin">שימוש בקוד</string>
     <string name="use_fingerprint">טביעת אצבע במקום קוד</string>
+    <string name="theme">🌓 ערכת צבעים: %1$s</string>
+    <string name="theme_system">לפי הטלפון</string>
+    <string name="theme_light">בהיר</string>
+    <string name="theme_dark">כהה</string>
     <string name="section_my_apps">האפליקציות שלי (הורים)</string>
     <string name="my_apps_hint">אפליקציות כמו אינסטגרם ישאלו \"לכמה זמן?\" לפני שהן נפתחות. הזמן נספר מרגע הבחירה, גם אם עוברים לאפליקציה אחרת. כשהזמן נגמר בתוך האפליקציה — \"רוצה עוד?\" עם המתנה של 30 שניות, גם אם פותחים אותה שוב בתוך 10 דקות. רק בטלפון הזה.</string>
     <string name="my_apps_choose">בחירת האפליקציות שלי</string>

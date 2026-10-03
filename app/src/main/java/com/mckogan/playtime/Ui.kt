@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
 import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
@@ -17,13 +18,42 @@ import android.widget.TextView
 
 /** Small helpers for building screens in code. */
 object Ui {
-    const val BG = 0xFFFFF8F0.toInt()
-    const val TEXT = 0xFF222222.toInt()
-    const val MUTED = 0xFF777777.toInt()
+    /** Dark colors on this screen. Set by [applyTheme] (and by the guard before drawing its cover). */
+    @Volatile var dark = false
+
+    private fun pick(light: Long, darkColor: Long) = (if (dark) darkColor else light).toInt()
+
+    val BG get() = pick(0xFFFFF8F0, 0xFF121212)
+    val TEXT get() = pick(0xFF222222, 0xFFEDEDED)
+    val MUTED get() = pick(0xFF777777, 0xFF9A9A9A)
     const val ACCENT = 0xFFFF7A45.toInt()
     const val DANGER = 0xFFE5484D.toInt()
-    const val CARD = 0xFFFFFFFF.toInt()
-    const val TRACK = 0xFFECECEC.toInt()
+    val CARD get() = pick(0xFFFFFFFF, 0xFF1E1E1E)
+    val TRACK get() = pick(0xFFECECEC, 0xFF333333)
+    /** Banner backgrounds: setup needed, outside game hours, parent playing. */
+    val WARN_BG get() = pick(0xFFFFE3D6, 0xFF4A2A1E)
+    val HOURS_BG get() = pick(0xFFFFF1C2, 0xFF4A3F17)
+    val INFO_BG get() = pick(0xFFE6F0FF, 0xFF1D2B45)
+
+    const val THEME_SYSTEM = "system"
+    const val THEME_LIGHT = "light"
+    const val THEME_DARK = "dark"
+
+    /** True if this phone should show the app dark: the parent's choice, or the phone's dark mode. */
+    fun isDark(context: Context): Boolean = when (Store(context).theme) {
+        THEME_DARK -> true
+        THEME_LIGHT -> false
+        else -> context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
+    }
+
+    /** Call before super.onCreate: picks the colors and the matching system theme (dialogs, switches, status bar). */
+    fun applyTheme(activity: Activity) {
+        dark = isDark(activity)
+        activity.setTheme(
+            if (dark) android.R.style.Theme_DeviceDefault_NoActionBar
+            else android.R.style.Theme_DeviceDefault_Light_NoActionBar
+        )
+    }
 
     fun Context.dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 

@@ -26,6 +26,7 @@ class WelcomeActivity : Activity() {
     private var busy = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Ui.applyTheme(this)
         super.onCreate(savedInstanceState)
         store = Store(this)
         step = savedInstanceState?.getInt(KEY_STEP) ?: STEP_WELCOME

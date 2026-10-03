@@ -296,6 +296,7 @@ class GuardService : Service() {
     private fun showCover(title: String, open: Intent) {
         if (!Settings.canDrawOverlays(this)) return
         hideCover()
+        Ui.dark = Ui.isDark(this)
         val box = Ui.column(this, 32).apply {
             setBackgroundColor(Ui.BG)
             gravity = Gravity.CENTER

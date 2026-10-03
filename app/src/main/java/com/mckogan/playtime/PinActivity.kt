@@ -25,6 +25,7 @@ class PinActivity : Activity() {
     private var firstEntry: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Ui.applyTheme(this)
         super.onCreate(savedInstanceState)
         store = Store(this)
         mode = intent.getStringExtra(EXTRA_MODE) ?: MODE_PARENT
