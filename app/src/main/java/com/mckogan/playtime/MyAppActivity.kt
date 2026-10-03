@@ -20,6 +20,7 @@ import android.view.animation.LinearInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import com.mckogan.playtime.Ui.add
 import com.mckogan.playtime.Ui.dp
 
@@ -115,7 +116,12 @@ class MyAppActivity : Activity() {
         }
         root.add(Ui.text(this, appName, 26f, bold = true, center = true), topMarginDp = 12)
         root.build()
-        setContentView(root)
+        // Scrolls on small screens (longer facts).
+        setContentView(ScrollView(this).apply {
+            setBackgroundColor(Ui.BG)
+            isFillViewport = true
+            addView(root)
+        })
     }
 
     /** First open: only a parent goes on. */

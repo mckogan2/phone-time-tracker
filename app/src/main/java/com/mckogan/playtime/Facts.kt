@@ -28,6 +28,7 @@ object Facts {
 
     private const val PREFS = "facts"
     private const val QUEUE_SIZE = 3
+    private const val MAX_EXTRACT = 4000
     private const val MAX_ATTEMPTS = 6
     private const val SEEN_MAX = 200
     private const val TITLES_TTL_MS = 7L * 24 * 60 * 60 * 1000
@@ -52,11 +53,11 @@ object Facts {
         val app = context.applicationContext
         val lang = lang(app)
         val prefs = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val queue = JSONArray(prefs.getString("queue_$lang", "[]"))
+        val queue = JSONArray(prefs.getString("queue2_$lang", "[]"))
         val fact = if (queue.length() > 0) {
             val o = queue.getJSONObject(0)
             queue.remove(0)
-            prefs.edit().putString("queue_$lang", queue.toString()).apply()
+            prefs.edit().putString("queue2_$lang", queue.toString()).apply()
             Fact(o.getString("text"), o.optString("emoji"), o.optString("title"), o.optString("url"))
         } else {
             null
@@ -84,28 +85,31 @@ object Facts {
     }
 
     private fun queueSize(app: Context, lang: String) =
-        JSONArray(app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("queue_$lang", "[]")).length()
+        JSONArray(app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("queue2_$lang", "[]")).length()
 
     private fun push(app: Context, lang: String, fact: Fact) {
         val prefs = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val queue = JSONArray(prefs.getString("queue_$lang", "[]"))
+        val queue = JSONArray(prefs.getString("queue2_$lang", "[]"))
         queue.put(JSONObject().put("text", fact.text).put("emoji", fact.emoji).put("title", fact.title).put("url", fact.url))
-        prefs.edit().putString("queue_$lang", queue.toString()).apply()
+        prefs.edit().putString("queue2_$lang", queue.toString()).apply()
     }
 
     private suspend fun makeOne(app: Context, lang: String): Fact? = runCatching {
         val title = randomTitle(app, lang) ?: return null
-        val summary = getJson(
-            "https://$lang.wikipedia.org/api/rest_v1/page/summary/" +
-                URLEncoder.encode(title.replace(' ', '_'), "UTF-8").replace("+", "%20")
-        ) ?: return null
-        val extract = summary.optString("extract").trim()
-        if (extract.length < 80) return null
-        val display = summary.optString("title", title)
-        val url = summary.optJSONObject("content_urls")?.optJSONObject("mobile")?.optString("page").orEmpty()
+        // The article's whole opening section (plain text), so there's enough material for a
+        // longer fact without the model adding anything of its own.
+        val page = getJson(
+            "https://$lang.wikipedia.org/w/api.php?action=query&format=json&formatversion=2" +
+                "&prop=extracts%7Cinfo&exintro=1&explaintext=1&inprop=url&redirects=1&titles=" +
+                URLEncoder.encode(title, "UTF-8")
+        )?.optJSONObject("query")?.optJSONArray("pages")?.optJSONObject(0) ?: return null
+        val extract = page.optString("extract").trim().take(MAX_EXTRACT)
+        if (extract.length < 200) return null
+        val display = page.optString("title", title)
+        val url = page.optString("fullurl").replace("://$lang.wikipedia.org", "://$lang.m.wikipedia.org")
         val answer = askGemini(app, lang, display, extract) ?: return null
         val text = answer.optString("fact").trim()
-        if (text.isEmpty() || text.length > 300) return null
+        if (text.length < 120 || text.length > 900) return null
         Fact(text, answer.optString("emoji").trim().take(4), display, url)
     }.getOrNull()
 
@@ -116,7 +120,8 @@ object Facts {
             $extract
 
             Write ONE surprising, interesting fact based ONLY on the text above. Do not add anything that is not in the text.
-            At most 2 short sentences, friendly and clear for an adult reader. Write it in $language.
+            Give it a little context so it's worth reading: 3 to 4 sentences, about 60 to 90 words,
+            friendly and clear for an adult reader. Write it in $language.
             Also give one emoji that fits the topic.
         """.trimIndent()
         val schema = Schema.obj(mapOf("fact" to Schema.string(), "emoji" to Schema.string()))
