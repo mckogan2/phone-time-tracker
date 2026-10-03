@@ -279,8 +279,21 @@ class Store(context: Context) {
     fun myAppUntil(pkg: String): Long = prefs.getLong("myapp_until_$pkg", 0L)
 
     fun startMyApp(pkg: String, minutes: Int) {
-        prefs.edit().putLong("myapp_until_$pkg", System.currentTimeMillis() + minutes * MINUTE_MS).apply()
+        prefs.edit()
+            .putLong("myapp_until_$pkg", System.currentTimeMillis() + minutes * MINUTE_MS)
+            .remove("myapp_cooldown_$pkg")
+            .apply()
     }
+
+    /**
+     * After time runs out inside the app, reopening it (from recents, the icon, anywhere) within
+     * [MY_APP_COOLDOWN_MS] still asks "want more?" with the 30-second wait instead of starting fresh.
+     */
+    fun startMyAppCooldown(pkg: String) {
+        prefs.edit().putLong("myapp_cooldown_$pkg", System.currentTimeMillis() + MY_APP_COOLDOWN_MS).apply()
+    }
+
+    fun inMyAppCooldown(pkg: String): Boolean = System.currentTimeMillis() < prefs.getLong("myapp_cooldown_$pkg", 0L)
 
     fun myAppActive(pkg: String): Boolean = System.currentTimeMillis() < myAppUntil(pkg)
 
@@ -521,6 +534,7 @@ class Store(context: Context) {
         const val MINUTE_MS = 60_000L
         const val DEFAULT_MINUTES = 45
         const val SETTINGS_UNLOCK_MS = 5 * MINUTE_MS
+        const val MY_APP_COOLDOWN_MS = 10 * MINUTE_MS
         private const val RECENT_DAYS = 14L
 
         const val LOCK_OFF = "off"

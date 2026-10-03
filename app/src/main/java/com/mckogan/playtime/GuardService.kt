@@ -208,8 +208,10 @@ class GuardService : Service() {
             } else if (MyAppActivity.isShowing(pkg)) {
                 hideCover()
             } else {
-                // Ran out while using it → "Want more?"; ran out elsewhere → a normal fresh start.
-                val ranOutHere = allowedInFront == pkg
+                // Ran out while using it (or did so in the last 10 minutes) → "Want more?" with the wait;
+                // ran out elsewhere → a normal fresh start.
+                if (allowedInFront == pkg) store.startMyAppCooldown(pkg)
+                val ranOutHere = store.inMyAppCooldown(pkg)
                 allowedInFront = null
                 store.endMyApp(pkg)
                 block(

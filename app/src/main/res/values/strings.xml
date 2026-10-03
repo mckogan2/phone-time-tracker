@@ -159,7 +159,7 @@
     <string name="use_pin">Use PIN</string>
     <string name="use_fingerprint">Use fingerprint instead of the PIN</string>
     <string name="section_my_apps">My apps (parents)</string>
-    <string name="my_apps_hint">Apps like Instagram ask \"how long?\" before they open. The time is real minutes from when you choose, even if you switch apps. When it runs out inside the app: \"want more?\" with a 30-second wait. This phone only.</string>
+    <string name="my_apps_hint">Apps like Instagram ask \"how long?\" before they open. The time is real minutes from when you choose, even if you switch apps. When it runs out inside the app: \"want more?\" with a 30-second wait, also if you reopen it within 10 minutes. This phone only.</string>
     <string name="my_apps_choose">Choose my apps</string>
     <string name="myapp_who">Who\'s using it?</string>
     <string name="myapp_parent">👤 Parent</string>
