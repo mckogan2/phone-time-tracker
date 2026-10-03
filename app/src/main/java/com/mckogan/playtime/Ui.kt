@@ -1,5 +1,7 @@
 package com.mckogan.playtime
 
+import android.app.Activity
+import android.app.AlertDialog
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Typeface
@@ -112,6 +114,21 @@ object Ui {
             grid.addView(cell, lp)
         }
         return grid
+    }
+
+    /** Shows a family join code, big and easy to read, with how to use it on the other phone. */
+    fun showFamilyCode(activity: Activity, code: String, onClose: () -> Unit = {}) {
+        AlertDialog.Builder(activity)
+            .setTitle(R.string.sync_code_title)
+            .setView(column(activity, 20).apply {
+                add(text(activity, code.chunked(3).joinToString(" "), 40f, ACCENT, bold = true, center = true).apply {
+                    textDirection = View.TEXT_DIRECTION_LTR
+                })
+                add(text(activity, activity.getString(R.string.sync_code_help), 15f), topMarginDp = 12)
+            })
+            .setPositiveButton(R.string.done) { _, _ -> onClose() }
+            .setOnCancelListener { onClose() }
+            .show()
     }
 
     fun LinearLayout.add(view: View, topMarginDp: Int = 0, fill: Boolean = true): View {

@@ -28,7 +28,7 @@ class PinActivity : Activity() {
         super.onCreate(savedInstanceState)
         store = Store(this)
         mode = intent.getStringExtra(EXTRA_MODE) ?: MODE_PARENT
-        creating = mode == MODE_CHANGE || !store.hasPin()
+        creating = mode == MODE_CHANGE || mode == MODE_SETUP || !store.hasPin()
 
         if (mode == MODE_SETTINGS && !store.hasPin()) {
             finish()
@@ -119,6 +119,7 @@ class PinActivity : Activity() {
         when (mode) {
             MODE_PARENT -> startActivity(Intent(this, ParentActivity::class.java))
             MODE_SETTINGS -> store.unlockSettings()
+            MODE_SETUP -> setResult(RESULT_OK)
         }
         finish()
     }
@@ -151,6 +152,7 @@ class PinActivity : Activity() {
         const val MODE_PARENT = "parent"
         const val MODE_SETTINGS = "settings"
         const val MODE_CHANGE = "change"
+        const val MODE_SETUP = "setup"
         private const val PIN_LENGTH = 4
         private const val MAX_FAILURES = 5
         private const val LOCKOUT_MS = 30_000L

@@ -27,6 +27,11 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         store = Store(this)
+        if (!store.onboarded) {
+            startActivity(Intent(this, WelcomeActivity::class.java))
+            finish()
+            return
+        }
         handleIntent(intent)
         if (Build.VERSION.SDK_INT >= 33 &&
             checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED

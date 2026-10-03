@@ -2,8 +2,6 @@
 <!-- Hebrew texts (values-iw = Hebrew). Keep the keys in sync with values/strings.xml. -->
 <resources>
     <string name="app_name">זמן משחק</string>
-    <string name="default_kid_1">אור</string>
-    <string name="default_kid_2">שחר</string>
     <string name="home_title">זמן משחק 🎮</string>
     <string name="who_title">מי משחק? 🎮</string>
     <string name="who_subtitle">לחצו על השם שלכם כדי להשתמש בזמן המשחק</string>
@@ -121,4 +119,17 @@
         <item quantity="many">✅ הסנכרון פועל — %1$d טלפונים</item>
         <item quantity="other">✅ הסנכרון פועל — %1$d טלפונים</item>
     </plurals>
+    <string name="welcome_subtitle">תקציב זמן משחק יומי לכל ילד — הוגן, פשוט ובשליטה שלכם.</string>
+    <string name="welcome_new">הקמת משפחה חדשה</string>
+    <string name="welcome_join">הצטרפות למשפחה שלי</string>
+    <string name="welcome_join_hint">ההורה השני כבר הגדיר את זמן משחק בטלפון שלו.</string>
+    <string name="welcome_kids_title">מי ישחק?</string>
+    <string name="welcome_kids_hint">הוסיפו כל ילד ואת זמן המשחק היומי שלו. אפשר לשנות אחר כך.</string>
+    <string name="welcome_next">הבא</string>
+    <string name="welcome_other_title">גם בטלפון של ההורה השני יהיה זמן משחק?</string>
+    <string name="welcome_other_hint">כך שני הטלפונים ישתפו את הילדים והזמן שלהם. אפשר לעשות את זה גם אחר כך: הורים ← סנכרון משפחתי.</string>
+    <string name="welcome_other_yes">כן, להציג קוד</string>
+    <string name="welcome_other_later">לא עכשיו</string>
+    <string name="welcome_offline">אין אינטרנט כרגע — לחצו \"לא עכשיו\" ועשו את זה אחר כך מהורים.</string>
+    <string name="welcome_join_steps">בטלפון של ההורה השני: זמן משחק ← 🔒 הורים ← סנכרון משפחתי ← הוספת טלפון נוסף. הקלידו כאן את הקוד.</string>
 </resources>

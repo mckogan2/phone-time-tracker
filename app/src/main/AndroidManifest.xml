@@ -50,6 +50,10 @@
             android:taskAffinity="com.mckogan.playtime.pin" />
 
         <activity
+            android:name=".WelcomeActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".KidCheckActivity"
             android:excludeFromRecents="true"
             android:exported="false" />

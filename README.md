@@ -2,7 +2,7 @@
 
 A small Android app that gives each child their own daily game-time budget on a shared phone.
 
-- **Each child has their own clock** (Or and Shahar start with 45 minutes a day).
+- **Each child has their own clock** (set during the first-run setup, 45 minutes a day by default).
 - **Time only counts while a game is on screen** and that child has tapped their name.
 - **Every game is timed automatically.** Apps that are marked as games (most games from the Play Store) are timed by default, including games installed later. Parents can untick a game or add apps that aren't marked as games.
 - **Pause and continue later.** Tap *Pause* (in the app or in the notification). The clock also stops on its own when the screen turns off or nobody has played a game for 5 minutes. The next time a game opens, the phone asks **"Who's playing?"**.
@@ -19,11 +19,11 @@ A small Android app that gives each child their own daily game-time budget on a 
 
 ## בעברית 🇮🇱
 
-**זמן משחק** נותן לכל ילד תקציב יומי משלו למשחקים בטלפון משותף (אור ושחר מתחילים עם 45 דקות ביום). הזמן נספר רק כשמשחק פתוח והילד לחץ על השם שלו. אפשר לעצור באמצע ולהמשיך אחר כך, והזמן מתחדש כל יום בחצות.
+**זמן משחק** נותן לכל ילד תקציב יומי משלו למשחקים בטלפון משותף (45 דקות ביום כברירת מחדל). הזמן נספר רק כשמשחק פתוח והילד לחץ על השם שלו. אפשר לעצור באמצע ולהמשיך אחר כך, והזמן מתחדש כל יום בחצות.
 
 **התקנה:**
 1. פתחו בטלפון את הקישור והתקינו: https://github.com/mckogan2/phone-time-tracker/releases/latest/download/PlayTime.apk
-2. פתחו את **זמן משחק** ← **🔒 הורים** ← צרו קוד הורים בן 4 ספרות.
+2. פתחו את **זמן משחק**. בפעם הראשונה תופיע הגדרה קצרה: **הקמת משפחה חדשה** (קוד הורים ← הוספת הילדים ← קוד לטלפון של ההורה השני) או **הצטרפות למשפחה שלי** (מקלידים את הקוד מהטלפון של ההורה השני).
 3. תחת **הרשאות**, לחצו **הפעלה** בכל שורה: גישה לנתוני שימוש, הצגה מעל אפליקציות אחרות, התראות, סוללה ללא הגבלה. כשהשתיים הראשונות פועלות יופיע **✅ השומר פועל**.
 4. תחת **משחקים** בדקו את הרשימה (🤖 = נמצא אוטומטית). חסר משחק? **בחירת משחקים**.
 5. הפעילו **נעילת הגדרות הטלפון בקוד**.
@@ -45,7 +45,11 @@ Play Time deliberately does **not** use an Accessibility Service: phones (Samsun
    https://github.com/mckogan2/phone-time-tracker/releases/latest/download/PlayTime.apk
    (Backup: GitHub → **Actions** → latest *Build APK* run → **PlayTime-apk**, a zip to extract.)
 2. **Install it.** Open `PlayTime.apk` on the phone and allow your browser/Files app to "install unknown apps". If it says **"App not installed"**, see *Troubleshooting* below.
-3. Open **Play Time** → **🔒 Parents** → create a 4-digit PIN.
+3. Open **Play Time**. The first time, a short setup asks:
+   - **Start a new family**: create a 4-digit parent PIN → add your children and their daily minutes → choose whether the other parent's phone will join (shows a code).
+   - **Join my family**: type the code from the other parent's phone (Parents → Family sync → Add another phone). The children, PIN and settings come from that phone.
+
+   Setup ends in **🔒 Parents** for the next steps.
 4. Under **Permissions**, tap **Turn on** for each item and come back:
    - **Usage access**: find *Play Time* in the list → allow.
    - **Display over other apps**: switch it on.

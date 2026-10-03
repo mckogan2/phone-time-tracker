@@ -258,17 +258,7 @@ class ParentActivity : Activity() {
     }
 
     private fun showCode(code: String) {
-        if (isFinishing) return
-        AlertDialog.Builder(this)
-            .setTitle(R.string.sync_code_title)
-            .setView(Ui.column(this, 20).apply {
-                add(Ui.text(this@ParentActivity, code.chunked(3).joinToString(" "), 40f, Ui.ACCENT, bold = true, center = true).apply {
-                    textDirection = View.TEXT_DIRECTION_LTR
-                })
-                add(Ui.text(this@ParentActivity, getString(R.string.sync_code_help), 15f), topMarginDp = 12)
-            })
-            .setPositiveButton(R.string.done, null)
-            .show()
+        if (!isFinishing) Ui.showFamilyCode(this, code)
     }
 
     private fun joinFamily() {

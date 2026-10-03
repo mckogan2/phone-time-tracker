@@ -2,8 +2,6 @@
 <!-- English texts. Hebrew is in values-iw/strings.xml: keep the keys in sync. -->
 <resources>
     <string name="app_name">Play Time</string>
-    <string name="default_kid_1">Or</string>
-    <string name="default_kid_2">Shahar</string>
     <string name="home_title">Play Time 🎮</string>
     <string name="who_title">Who\'s playing? 🎮</string>
     <string name="who_subtitle">Tap your name to use your game time</string>
@@ -117,4 +115,17 @@
         <item quantity="one">✅ Family sync is on — %1$d phone</item>
         <item quantity="other">✅ Family sync is on — %1$d phones</item>
     </plurals>
+    <string name="welcome_subtitle">A daily game-time budget for each child — fair, simple, and in your control.</string>
+    <string name="welcome_new">Start a new family</string>
+    <string name="welcome_join">Join my family</string>
+    <string name="welcome_join_hint">The other parent already set up Play Time on their phone.</string>
+    <string name="welcome_kids_title">Who will play?</string>
+    <string name="welcome_kids_hint">Add each child and their daily game time. You can change this later.</string>
+    <string name="welcome_next">Next</string>
+    <string name="welcome_other_title">Will another parent\'s phone use Play Time too?</string>
+    <string name="welcome_other_hint">Then both phones share the children and their time. You can also do this later in Parents → Family sync.</string>
+    <string name="welcome_other_yes">Yes, show a code</string>
+    <string name="welcome_other_later">Not now</string>
+    <string name="welcome_offline">No internet right now — tap Not now and do it later from Parents.</string>
+    <string name="welcome_join_steps">On the other parent\'s phone: Play Time → 🔒 Parents → Family sync → Add another phone. Type the code here.</string>
 </resources>
