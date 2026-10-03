@@ -226,7 +226,7 @@ class MyAppActivity : Activity() {
     }
 
     private fun start(minutes: Int) {
-        store.setMyAppLeftMs(pkg, minutes * Store.MINUTE_MS)
+        store.startMyApp(pkg, minutes)
         packageManager.getLaunchIntentForPackage(pkg)?.let {
             startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }

@@ -68,10 +68,7 @@ class GuardService : Service() {
     private val screenOffReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             // Phone put down: stop the clock. Next game launch asks "Who's playing?" again,
-            // and the parent's own apps ask "how long?" again.
             store.pause()
-            store.endAllMyApps()
-            myAppSeen.clear()
             updateNotification()
         }
     }
@@ -151,18 +148,9 @@ class GuardService : Service() {
                 if (System.currentTimeMillis() - since > AWAY_PAUSE_MS) store.pause()
             }
         }
-        // The parent's own apps: count the chosen session only while the app is on screen.
+        // The parent's own apps run on a wall-clock session; check each second while one is in front.
         val myApp = foregroundPkg?.takeIf { it in store.myApps() }
-        val wallNow = System.currentTimeMillis()
-        if (myApp != null && power.isInteractive) {
-            val left = store.myAppLeftMs(myApp)
-            if (left > 0) store.setMyAppLeftMs(myApp, left - delta)
-            myAppSeen[myApp] = wallNow
-        }
-        // Left the app for a while: the session ends, and the next open asks again.
-        myAppSeen.entries.removeAll { (pkg, seen) ->
-            (pkg != foregroundPkg && wallNow - seen > AWAY_PAUSE_MS).also { if (it) store.endMyApp(pkg) }
-        }
+        if (myApp == null) allowedInFront = null
 
         if (changed || inGame || myApp != null || foregroundPkg in PROTECTED_PACKAGES) enforce()
         val activeKid = if (parentPlaying) null else store.activeKid()
@@ -214,13 +202,20 @@ class GuardService : Service() {
 
         // The parent's own apps: "who's using?" before, "want more?" after the chosen time.
         if (pkg in store.myApps()) {
-            if (store.myAppLeftMs(pkg) > 0 || MyAppActivity.isShowing(pkg)) {
+            if (store.myAppActive(pkg)) {
+                allowedInFront = pkg
+                hideCover()
+            } else if (MyAppActivity.isShowing(pkg)) {
                 hideCover()
             } else {
+                // Ran out while using it → "Want more?"; ran out elsewhere → a normal fresh start.
+                val ranOutHere = allowedInFront == pkg
+                allowedInFront = null
+                store.endMyApp(pkg)
                 block(
                     Intent(this, MyAppActivity::class.java)
                         .putExtra(MyAppActivity.EXTRA_APP, pkg)
-                        .putExtra(MyAppActivity.EXTRA_MORE, store.myAppStarted(pkg)),
+                        .putExtra(MyAppActivity.EXTRA_MORE, ranOutHere),
                     appLabel(pkg),
                 )
             }
@@ -477,36 +472,31 @@ class GuardService : Service() {
         return builder.build()
     }
 
-    private val myAppSeen = mutableMapOf<String, Long>()
+    /** The "My app" that was in front with an active session (to tell "ran out here" from "ran out elsewhere"). */
+    private var allowedInFront: String? = null
 
-    /** What each "My app" notification shows now, so it's re-posted only when that changes. */
-    private val myAppShown = mutableMapOf<String, String>()
+    /** The end time each "My app" notification shows, so it's re-posted only when that changes. */
+    private val myAppShown = mutableMapOf<String, Long>()
 
-    /**
-     * One notification per "My app" with time left: a live countdown while the app is on
-     * screen, "paused" otherwise (time only counts while it's open). Gone when the session ends.
-     */
+    /** One notification per "My app" with an active session: a live countdown to its end time. */
     private fun updateMyAppNotifications() {
         val apps = store.myApps().sorted()
         for ((index, pkg) in apps.withIndex()) {
             val id = MY_APP_NOTIFICATION_BASE + index
-            val left = store.myAppLeftMs(pkg)
-            if (!store.myAppStarted(pkg) || left <= 0) {
+            val until = store.myAppUntil(pkg)
+            if (!store.myAppActive(pkg)) {
                 if (myAppShown.remove(pkg) != null) notifications.cancel(id)
                 continue
             }
-            val live = foregroundPkg == pkg && power.isInteractive
-            // Live: state only. Paused: also the minutes shown.
-            val state = if (live) "live" else "paused:" + Ui.formatMinutes(this, left)
-            if (myAppShown[pkg] == state) continue
-            myAppShown[pkg] = state
-            runCatching { notifications.notify(id, buildMyAppNotification(pkg, index, left, live)) }
+            if (myAppShown[pkg] == until) continue
+            myAppShown[pkg] = until
+            runCatching { notifications.notify(id, buildMyAppNotification(pkg, index, until)) }
         }
         // Apps removed from the list.
         for (pkg in myAppShown.keys.filter { it !in apps }) myAppShown.remove(pkg)
     }
 
-    private fun buildMyAppNotification(pkg: String, index: Int, left: Long, live: Boolean): Notification {
+    private fun buildMyAppNotification(pkg: String, index: Int, until: Long): Notification {
         val name = appLabel(pkg)
         val open = packageManager.getLaunchIntentForPackage(pkg)?.let {
             PendingIntent.getActivity(this, 100 + index, it, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
@@ -520,18 +510,14 @@ class GuardService : Service() {
             .setSmallIcon(R.drawable.ic_launcher)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
-            .setShowWhen(live)
+            .setShowWhen(true)
+            .setContentTitle(getString(R.string.myapp_notif_left, name))
+            .setUsesChronometer(true)
+            .setChronometerCountDown(true)
+            .setWhen(until)
+            .setTimeoutAfter((until - System.currentTimeMillis()).coerceAtLeast(1L))
             .addAction(Notification.Action.Builder(null, getString(R.string.myapp_end_now), end).build())
         open?.let { builder.setContentIntent(it) }
-        if (live) {
-            builder.setContentTitle(getString(R.string.myapp_notif_left, name))
-                .setUsesChronometer(true)
-                .setChronometerCountDown(true)
-                .setWhen(System.currentTimeMillis() + left)
-        } else {
-            builder.setContentTitle(name)
-                .setContentText(getString(R.string.myapp_notif_paused, Ui.formatMinutes(this, left)))
-        }
         return builder.build()
     }
 

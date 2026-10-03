@@ -163,7 +163,7 @@
     <string name="use_pin">שימוש בקוד</string>
     <string name="use_fingerprint">טביעת אצבע במקום קוד</string>
     <string name="section_my_apps">האפליקציות שלי (הורים)</string>
-    <string name="my_apps_hint">אפליקציות כמו אינסטגרם ישאלו \"לכמה זמן?\" לפני שהן נפתחות, וכשהזמן נגמר — \"רוצה עוד?\" עם המתנה של 30 שניות. רק בטלפון הזה.</string>
+    <string name="my_apps_hint">אפליקציות כמו אינסטגרם ישאלו \"לכמה זמן?\" לפני שהן נפתחות. הזמן נספר מרגע הבחירה, גם אם עוברים לאפליקציה אחרת. כשהזמן נגמר בתוך האפליקציה — \"רוצה עוד?\" עם המתנה של 30 שניות. רק בטלפון הזה.</string>
     <string name="my_apps_choose">בחירת האפליקציות שלי</string>
     <string name="myapp_who">מי משתמש?</string>
     <string name="myapp_parent">👤 הורה</string>
@@ -174,6 +174,5 @@
     <string name="myapp_breathe">לנשום רגע… או לסגור 🙂</string>
     <string name="my_apps_channel">טיימר האפליקציות שלי</string>
     <string name="myapp_notif_left">%1$s — זמן שנשאר</string>
-    <string name="myapp_notif_paused">⏸ נשארו %1$s (בהשהיה)</string>
     <string name="myapp_end_now">סיום עכשיו</string>
 </resources>

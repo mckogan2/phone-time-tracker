@@ -272,25 +272,21 @@ class Store(context: Context) {
         prefs.edit().putStringSet(KEY_MY_APPS, packages.toSet()).apply()
     }
 
-    /** Time left in the current session for [pkg] (counts only while the app is on screen). */
-    fun myAppLeftMs(pkg: String): Long = prefs.getLong("myapp_left_$pkg", 0L)
+    /**
+     * When the current session for [pkg] ends (wall clock, ms). The clock runs whether or not
+     * the app is on screen: "15 minutes" means 15 real minutes from when they were chosen.
+     */
+    fun myAppUntil(pkg: String): Long = prefs.getLong("myapp_until_$pkg", 0L)
 
-    fun setMyAppLeftMs(pkg: String, ms: Long) {
-        prefs.edit().putLong("myapp_left_$pkg", ms.coerceAtLeast(0L)).putBoolean("myapp_started_$pkg", true).apply()
+    fun startMyApp(pkg: String, minutes: Int) {
+        prefs.edit().putLong("myapp_until_$pkg", System.currentTimeMillis() + minutes * MINUTE_MS).apply()
     }
 
-    /** True once a session was chosen; its end then asks "want more?" instead of "who's using?". */
-    fun myAppStarted(pkg: String): Boolean = prefs.getBoolean("myapp_started_$pkg", false)
+    fun myAppActive(pkg: String): Boolean = System.currentTimeMillis() < myAppUntil(pkg)
 
-    /** Ends the session (screen off, app left for a while, or "close"). Next open asks again. */
+    /** Ends the session now ("Close" or "End now"). The next open asks "who's using it?". */
     fun endMyApp(pkg: String) {
-        prefs.edit().remove("myapp_left_$pkg").remove("myapp_started_$pkg").apply()
-    }
-
-    fun endAllMyApps() {
-        val e = prefs.edit()
-        for (pkg in myApps()) e.remove("myapp_left_$pkg").remove("myapp_started_$pkg")
-        e.apply()
+        prefs.edit().remove("myapp_until_$pkg").apply()
     }
 
     // ---- Parent playing (this phone only) ----
