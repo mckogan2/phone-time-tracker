@@ -54,14 +54,14 @@ class ParentActivity : Activity() {
 
     private fun render() {
         val root = Ui.column(this, 20)
-        root.add(Ui.text(this, "Parent controls", 28f, bold = true))
+        root.add(Ui.text(this, getString(R.string.parent_title), 28f, bold = true))
 
-        root.add(section("Permissions"), topMarginDp = 20)
+        root.add(section(getString(R.string.section_permissions)), topMarginDp = 20)
         val guardOn = GuardService.isReady(this)
         root.add(
             Ui.text(
                 this,
-                if (guardOn) "✅ Guard is on" else "⚠️ Guard is off — turn on the first two below",
+                getString(if (guardOn) R.string.guard_on else R.string.guard_off),
                 16f,
                 if (guardOn) Ui.TEXT else Ui.DANGER,
                 bold = true,
@@ -70,16 +70,16 @@ class ParentActivity : Activity() {
         )
         root.add(
             permissionRow(
-                "Usage access",
-                "Lets Play Time see which game is open. Find Play Time in the list and allow it.",
+                getString(R.string.perm_usage),
+                getString(R.string.perm_usage_hint),
                 GuardService.hasUsageAccess(this),
             ) { openSystem(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) },
             topMarginDp = 10,
         )
         root.add(
             permissionRow(
-                "Display over other apps",
-                "Lets Play Time cover a game when time is up.",
+                getString(R.string.perm_overlay),
+                getString(R.string.perm_overlay_hint),
                 GuardService.canOverlay(this),
             ) {
                 openSystem(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
@@ -88,8 +88,8 @@ class ParentActivity : Activity() {
         )
         root.add(
             permissionRow(
-                "Notifications",
-                "Shows the time left and the Pause button.",
+                getString(R.string.perm_notif),
+                getString(R.string.perm_notif_hint),
                 Build.VERSION.SDK_INT < 33 ||
                     checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED,
             ) {
@@ -101,8 +101,8 @@ class ParentActivity : Activity() {
         )
         root.add(
             permissionRow(
-                "Battery: unrestricted",
-                "Stops the phone from switching the guard off to save battery.",
+                getString(R.string.perm_battery),
+                getString(R.string.perm_battery_hint),
                 getSystemService(PowerManager::class.java)!!.isIgnoringBatteryOptimizations(packageName),
             ) {
                 openSystem(
@@ -112,15 +112,15 @@ class ParentActivity : Activity() {
             topMarginDp = 10,
         )
 
-        root.add(section("Children"), topMarginDp = 24)
+        root.add(section(getString(R.string.section_children)), topMarginDp = 24)
         val active = store.activeKid()
         for (kid in store.kids()) root.add(kidCard(kid, active?.id == kid.id), topMarginDp = 10)
-        root.add(Ui.button(this, "+ Add child", Ui.MUTED) { editKid(null) }, topMarginDp = 10)
+        root.add(Ui.button(this, getString(R.string.add_child), Ui.MUTED) { editKid(null) }, topMarginDp = 10)
 
-        root.add(section("Games"), topMarginDp = 24)
+        root.add(section(getString(R.string.section_games)), topMarginDp = 24)
         val detected = store.detectedGames(refresh = true)
         root.add(Switch(this).apply {
-            text = "Automatically time all games"
+            text = getString(R.string.auto_games)
             textSize = 16f
             isChecked = store.autoGames
             setOnCheckedChangeListener { _, checked ->
@@ -129,32 +129,37 @@ class ParentActivity : Activity() {
             }
         }, topMarginDp = 8)
         root.add(
-            Ui.text(this, "🤖 = found automatically. Some games don't say they're games — add them with Choose games.", 14f, Ui.MUTED),
+            Ui.text(this, getString(R.string.auto_games_hint), 14f, Ui.MUTED),
             topMarginDp = 4,
         )
         val timed = store.games().map { (if (it in detected) "🤖 " else "🎮 ") + label(it) }.sortedBy { it.drop(3).lowercase() }
         root.add(
-            Ui.text(this, if (timed.isEmpty()) "No games are timed yet." else timed.joinToString("\n"), 16f),
+            Ui.text(this, if (timed.isEmpty()) getString(R.string.no_games_timed) else timed.joinToString("\n"), 16f),
             topMarginDp = 8,
         )
-        root.add(Ui.button(this, "Choose games") { chooseGames() }, topMarginDp = 8)
+        root.add(Ui.button(this, getString(R.string.choose_games)) { chooseGames() }, topMarginDp = 8)
 
-        root.add(section("Security"), topMarginDp = 24)
+        root.add(section(getString(R.string.section_security)), topMarginDp = 24)
         root.add(Switch(this).apply {
-            text = "Lock phone Settings with PIN (stops kids switching the guard off or uninstalling)"
+            text = getString(R.string.lock_settings)
             textSize = 16f
             isChecked = store.protectSettings
             setOnCheckedChangeListener { _, checked -> store.protectSettings = checked }
         }, topMarginDp = 8)
-        root.add(Ui.button(this, "Open phone Settings (unlocked 5 min)", Ui.MUTED) {
+        root.add(Ui.button(this, getString(R.string.open_settings), Ui.MUTED) {
             openSystem(Intent(Settings.ACTION_SETTINGS))
         }, topMarginDp = 8)
-        root.add(Ui.button(this, "Change PIN", Ui.MUTED) {
+        if (Build.VERSION.SDK_INT >= 33) {
+            root.add(Ui.button(this, getString(R.string.language), Ui.MUTED) {
+                openSystem(Intent(Settings.ACTION_APP_LOCALE_SETTINGS, Uri.parse("package:$packageName")))
+            }, topMarginDp = 8)
+        }
+        root.add(Ui.button(this, getString(R.string.change_pin), Ui.MUTED) {
             keepOpen = true
             startActivity(Intent(this, PinActivity::class.java).putExtra(PinActivity.EXTRA_MODE, PinActivity.MODE_CHANGE))
         }, topMarginDp = 8)
 
-        root.add(Ui.button(this, "Done", Ui.TEXT) { finish() }, topMarginDp = 32)
+        root.add(Ui.button(this, getString(R.string.done), Ui.TEXT) { finish() }, topMarginDp = 32)
 
         setContentView(ScrollView(this).apply {
             setBackgroundColor(Ui.BG)
@@ -166,7 +171,7 @@ class ParentActivity : Activity() {
         val card = Ui.card(this)
         card.add(Ui.text(this, (if (granted) "✅ " else "⬜ ") + title, 18f, bold = true))
         card.add(Ui.text(this, hint, 14f, Ui.MUTED), topMarginDp = 2)
-        if (!granted) card.add(Ui.button(this, "Turn on", sizeSp = 16f, onClick = turnOn), topMarginDp = 10)
+        if (!granted) card.add(Ui.button(this, getString(R.string.turn_on), sizeSp = 16f, onClick = turnOn), topMarginDp = 10)
         return card
     }
 
@@ -175,12 +180,16 @@ class ParentActivity : Activity() {
     private fun kidCard(kid: Kid, playing: Boolean): LinearLayout {
         val card = Ui.card(this)
         val remaining = store.remainingMs(kid)
-        card.add(Ui.text(this, kid.name + if (playing) "  ▶ playing" else "", 22f, kid.color, bold = true))
+        card.add(Ui.text(this, kid.name + if (playing) "  " + getString(R.string.playing_badge) else "", 22f, kid.color, bold = true))
         card.add(
             Ui.text(
                 this,
-                "${kid.dailyMinutes} min a day · used ${Ui.formatClock(store.usedMs(kid.id).coerceAtLeast(0))} · " +
-                    "left ${Ui.formatClock(remaining)}",
+                getString(
+                    R.string.kid_summary,
+                    kid.dailyMinutes,
+                    Ui.formatClock(store.usedMs(kid.id).coerceAtLeast(0)),
+                    Ui.formatClock(remaining),
+                ),
                 15f,
                 Ui.MUTED,
             ),
@@ -188,25 +197,25 @@ class ParentActivity : Activity() {
         )
 
         val row1 = Ui.row(this)
-        row1.addView(Ui.button(this, "+15 min", kid.color, 15f) {
+        row1.addView(Ui.button(this, getString(R.string.bonus_15), kid.color, 15f) {
             store.addBonus(kid.id, 15)
             render()
         }, weighted())
-        row1.addView(Ui.button(this, "Reset today", Ui.MUTED, 15f) {
+        row1.addView(Ui.button(this, getString(R.string.reset_today), Ui.MUTED, 15f) {
             store.resetToday(kid.id)
             render()
         }, weighted(leftMarginDp = 8))
         card.add(row1, topMarginDp = 12)
 
         val row2 = Ui.row(this)
-        row2.addView(Ui.button(this, "Edit", Ui.MUTED, 15f) { editKid(kid) }, weighted())
+        row2.addView(Ui.button(this, getString(R.string.edit), Ui.MUTED, 15f) { editKid(kid) }, weighted())
         if (playing) {
-            row2.addView(Ui.button(this, "Stop now", Ui.DANGER, 15f) {
+            row2.addView(Ui.button(this, getString(R.string.stop_now), Ui.DANGER, 15f) {
                 store.pause()
                 render()
             }, weighted(leftMarginDp = 8))
         } else {
-            row2.addView(Ui.button(this, "Remove", Ui.DANGER, 15f) { confirmRemove(kid) }, weighted(leftMarginDp = 8))
+            row2.addView(Ui.button(this, getString(R.string.remove), Ui.DANGER, 15f) { confirmRemove(kid) }, weighted(leftMarginDp = 8))
         }
         card.add(row2, topMarginDp = 8)
         return card
@@ -217,12 +226,12 @@ class ParentActivity : Activity() {
 
     private fun editKid(kid: Kid?) {
         val name = EditText(this).apply {
-            hint = "Name"
+            hint = getString(R.string.name_hint)
             setText(kid?.name ?: "")
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_WORDS
         }
         val minutes = EditText(this).apply {
-            hint = "Minutes per day"
+            hint = getString(R.string.minutes_hint)
             setText((kid?.dailyMinutes ?: Store.DEFAULT_MINUTES).toString())
             inputType = InputType.TYPE_CLASS_NUMBER
         }
@@ -231,9 +240,9 @@ class ParentActivity : Activity() {
             addView(minutes)
         }
         AlertDialog.Builder(this)
-            .setTitle(if (kid == null) "Add child" else "Edit ${kid.name}")
+            .setTitle(if (kid == null) getString(R.string.add_child_title) else getString(R.string.edit_title, kid.name))
             .setView(form)
-            .setPositiveButton("Save") { _, _ ->
+            .setPositiveButton(R.string.save) { _, _ ->
                 val n = name.text.toString().trim()
                 val m = minutes.text.toString().toIntOrNull()?.coerceIn(0, 24 * 60)
                 if (n.isNotEmpty() && m != null) {
@@ -241,18 +250,18 @@ class ParentActivity : Activity() {
                 }
                 render()
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
     private fun confirmRemove(kid: Kid) {
         AlertDialog.Builder(this)
-            .setTitle("Remove ${kid.name}?")
-            .setPositiveButton("Remove") { _, _ ->
+            .setTitle(getString(R.string.remove_title, kid.name))
+            .setPositiveButton(R.string.remove) { _, _ ->
                 store.removeKid(kid.id)
                 render()
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
@@ -271,15 +280,15 @@ class ParentActivity : Activity() {
         val names = sorted.map { (if (it.first in detected) "🤖 " else "") + it.second }.toTypedArray()
 
         AlertDialog.Builder(this)
-            .setTitle("Which apps should be timed?")
+            .setTitle(getString(R.string.which_apps))
             .setMultiChoiceItems(names, checked) { _, i, isChecked -> checked[i] = isChecked }
-            .setPositiveButton("Save") { _, _ ->
+            .setPositiveButton(R.string.save) { _, _ ->
                 sorted.forEachIndexed { i, (pkg, _) ->
                     if (checked[i] != (pkg in before)) store.setGameChoice(pkg, checked[i])
                 }
                 render()
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 

@@ -27,14 +27,26 @@ class Store(context: Context) {
         appContext.getSharedPreferences("playtime", Context.MODE_PRIVATE)
 
     init {
+        val kid1 = appContext.getString(R.string.default_kid_1)
+        val kid2 = appContext.getString(R.string.default_kid_2)
         if (!prefs.contains(KEY_KIDS)) {
             saveKids(
                 listOf(
-                    Kid(newId(), "Or", DEFAULT_MINUTES, KID_COLORS[0]),
-                    Kid(newId(), "Shahar", DEFAULT_MINUTES, KID_COLORS[1]),
+                    Kid(newId(), kid1, DEFAULT_MINUTES, KID_COLORS[0]),
+                    Kid(newId(), kid2, DEFAULT_MINUTES, KID_COLORS[1]),
                 )
             )
+        } else if (!prefs.getBoolean(KEY_NAMES_MIGRATED, false) && kid1 != "Or") {
+            // One-time: the first version always used English names. Use the app's language once.
+            saveKids(kids().map {
+                when (it.name) {
+                    "Or" -> it.copy(name = kid1)
+                    "Shahar" -> it.copy(name = kid2)
+                    else -> it
+                }
+            })
         }
+        if (kid1 != "Or") prefs.edit().putBoolean(KEY_NAMES_MIGRATED, true).apply()
     }
 
     // ---- Kids ----
@@ -231,6 +243,7 @@ class Store(context: Context) {
         private const val KEY_ACTIVE = "active_kid"
         private const val KEY_ACTIVE_SINCE = "active_since"
         private const val KEY_GAMES = "games"
+        private const val KEY_NAMES_MIGRATED = "names_migrated"
         private const val KEY_EXCLUDED_GAMES = "excluded_games"
         private const val KEY_AUTO_GAMES = "auto_games"
         private const val DETECT_CACHE_MS = 60_000L

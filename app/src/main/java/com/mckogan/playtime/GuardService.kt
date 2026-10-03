@@ -85,7 +85,7 @@ class GuardService : Service() {
         usage = getSystemService(UsageStatsManager::class.java)!!
         windows = getSystemService(WindowManager::class.java)!!
         notifications.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "Game time", NotificationManager.IMPORTANCE_LOW)
+            NotificationChannel(CHANNEL_ID, getString(R.string.channel_name), NotificationManager.IMPORTANCE_LOW)
         )
         val notification = buildNotification()
         if (Build.VERSION.SDK_INT >= 34) {
@@ -175,7 +175,7 @@ class GuardService : Service() {
         if (pkg in PROTECTED_PACKAGES && store.protectSettings && store.hasPin() && !store.settingsUnlocked()) {
             block(
                 Intent(this, PinActivity::class.java).putExtra(PinActivity.EXTRA_MODE, PinActivity.MODE_SETTINGS),
-                "🔒 Parent PIN needed",
+                getString(R.string.pin_needed),
             )
             return
         }
@@ -186,11 +186,12 @@ class GuardService : Service() {
         }
         val kid = store.activeKid()
         val title = when {
-            kid == null -> "Who's playing? 🎮"
+            kid == null -> getString(R.string.who_title)
             store.remainingMs(kid) <= 0 -> {
                 store.pause()
-                Toast.makeText(this, "Time's up, ${kid.name}!", Toast.LENGTH_LONG).show()
-                "Time's up, ${kid.name}! ⏰"
+                getString(R.string.time_up_name, kid.name).also {
+                    Toast.makeText(this, it, Toast.LENGTH_LONG).show()
+                }
             }
             else -> {
                 hideCover()
@@ -239,7 +240,7 @@ class GuardService : Service() {
         }
         box.add(Ui.text(this, title, 30f, bold = true, center = true))
         box.add(
-            Ui.button(this, "Open Play Time") {
+            Ui.button(this, getString(R.string.open_app)) {
                 runCatching { startActivity(open) }
             },
             topMarginDp = 24,
@@ -270,15 +271,15 @@ class GuardService : Service() {
         for (minutes in WARN_AT_MINUTES) {
             if (remaining <= minutes * Store.MINUTE_MS && warnedAtMinutes > minutes && remaining > 0) {
                 warnedAtMinutes = minutes
-                val unit = if (minutes == 1) "minute" else "minutes"
-                Toast.makeText(this, "${kid.name}: $minutes $unit left!", Toast.LENGTH_LONG).show()
+                val text = resources.getQuantityString(R.plurals.warn_left, minutes, kid.name, minutes)
+                Toast.makeText(this, text, Toast.LENGTH_LONG).show()
             }
         }
     }
 
     private fun notificationTitle(): String {
-        val kid = store.activeKid() ?: return "Play Time is on — games are timed"
-        return "${kid.name} is playing — ${Ui.formatMinutes(store.remainingMs(kid))} left"
+        val kid = store.activeKid() ?: return getString(R.string.guard_running)
+        return getString(R.string.notif_playing, kid.name, Ui.formatMinutes(this, store.remainingMs(kid)))
     }
 
     private fun updateNotification() {
@@ -304,8 +305,8 @@ class GuardService : Service() {
                 Intent(this, MainActivity::class.java).setAction(MainActivity.ACTION_PAUSE),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
-            builder.setContentText("Tap Pause to save the rest for later")
-                .addAction(Notification.Action.Builder(null, "⏸ Pause", pause).build())
+            builder.setContentText(getString(R.string.notif_pause_hint))
+                .addAction(Notification.Action.Builder(null, getString(R.string.pause), pause).build())
         }
         return builder.build()
     }

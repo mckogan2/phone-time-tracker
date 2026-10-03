@@ -71,19 +71,21 @@ class MainActivity : Activity() {
         val active = store.activeKid()
 
         val (title, subtitle) = when (reason) {
-            REASON_WHO -> "Who's playing? 🎮" to "Tap your name to use your game time"
+            REASON_WHO -> getString(R.string.who_title) to getString(R.string.who_subtitle)
             REASON_TIME_UP -> {
                 val name = store.kid(blockedKidId)?.name
-                "Time's up${name?.let { ", $it" } ?: ""}! ⏰" to "Your time comes back tomorrow"
+                (name?.let { getString(R.string.time_up_name, it) } ?: getString(R.string.time_up_title)) to
+                    getString(R.string.time_up_subtitle)
             }
-            else -> "Play Time 🎮" to (active?.let { "${it.name} is playing" } ?: "Tap your name to play")
+            else -> getString(R.string.home_title) to
+                (active?.let { getString(R.string.kid_is_playing, it.name) } ?: getString(R.string.tap_to_play))
         }
         root.add(Ui.text(this, title, 30f, bold = true, center = true))
         root.add(Ui.text(this, subtitle, 16f, Ui.MUTED, center = true), topMarginDp = 4)
 
         if (!GuardService.isReady(this)) {
             val banner = Ui.card(this, 0xFFFFE3D6.toInt())
-            banner.add(Ui.text(this, "Setup needed: a parent must turn on the Play Time guard.", 15f))
+            banner.add(Ui.text(this, getString(R.string.setup_needed), 15f))
             root.add(banner, topMarginDp = 16)
         }
 
@@ -91,7 +93,7 @@ class MainActivity : Activity() {
 
         if (active != null && blockedGame == null) root.add(gamePicker(), topMarginDp = 20)
 
-        val parents = Ui.text(this, "🔒 Parents", 16f, Ui.MUTED, center = true).apply {
+        val parents = Ui.text(this, getString(R.string.parents_button), 16f, Ui.MUTED, center = true).apply {
             val p = dp(16)
             setPadding(p, p, p, p)
             setOnClickListener {
@@ -115,16 +117,16 @@ class MainActivity : Activity() {
         val card = Ui.card(this)
 
         card.add(Ui.text(this, kid.name, 28f, kid.color, bold = true))
-        card.add(Ui.text(this, "${Ui.formatClock(remaining)} left", 40f, bold = true), topMarginDp = 4)
+        card.add(Ui.text(this, getString(R.string.time_left, Ui.formatClock(remaining)), 40f, bold = true), topMarginDp = 4)
         card.add(Ui.progress(this, if (total > 0) remaining.toFloat() / total else 0f, kid.color), topMarginDp = 12)
 
         val button = when {
-            active?.id == kid.id -> Ui.button(this, "⏸ Pause", Ui.MUTED) {
+            active?.id == kid.id -> Ui.button(this, getString(R.string.pause), Ui.MUTED) {
                 store.pause()
                 render()
             }
-            remaining > 0 -> Ui.button(this, "▶ Play", kid.color) { play(kid) }
-            else -> Ui.button(this, "Done for today ✔", Ui.TRACK) {}.apply {
+            remaining > 0 -> Ui.button(this, getString(R.string.play), kid.color) { play(kid) }
+            else -> Ui.button(this, getString(R.string.done_today), Ui.TRACK) {}.apply {
                 setTextColor(Ui.MUTED)
                 isEnabled = false
             }
@@ -152,10 +154,10 @@ class MainActivity : Activity() {
         }.sortedBy { it.second.lowercase() }
 
         if (games.isEmpty()) {
-            box.add(Ui.text(this, "No games chosen yet — ask a parent.", 16f, Ui.MUTED, center = true))
+            box.add(Ui.text(this, getString(R.string.no_games_ask_parent), 16f, Ui.MUTED, center = true))
             return box
         }
-        box.add(Ui.text(this, "Pick a game", 20f, bold = true))
+        box.add(Ui.text(this, getString(R.string.pick_game), 20f, bold = true))
         for ((pkg, label, icon) in games) {
             val tile = Ui.row(this).apply {
                 background = Ui.rounded(Ui.CARD, 16, this@MainActivity)

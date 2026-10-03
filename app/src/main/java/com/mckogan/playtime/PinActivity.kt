@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
+import android.view.View
 import android.widget.GridLayout
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -74,7 +75,11 @@ class PinActivity : Activity() {
     }
 
     private fun keypad(): GridLayout {
-        val grid = GridLayout(this).apply { columnCount = 3 }
+        // Number pads keep 1-2-3 left to right, also in Hebrew.
+        val grid = GridLayout(this).apply {
+            columnCount = 3
+            layoutDirection = View.LAYOUT_DIRECTION_LTR
+        }
         val keys = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", "")
         for (key in keys) {
             val size = dp(80)
@@ -118,7 +123,7 @@ class PinActivity : Activity() {
                 }
                 else -> {
                     firstEntry = null
-                    messageView.text = "The PINs didn't match. Try again."
+                    messageView.text = getString(R.string.pin_mismatch)
                 }
             }
         } else if (store.checkPin(pin)) {
@@ -133,7 +138,7 @@ class PinActivity : Activity() {
                 tickLockout()
             } else {
                 store.pinFailures = failures
-                messageView.text = "Wrong PIN"
+                messageView.text = getString(R.string.pin_wrong)
             }
         }
         refresh()
@@ -152,7 +157,7 @@ class PinActivity : Activity() {
     private fun tickLockout() {
         val left = lockedForMs()
         if (left > 0) {
-            messageView.text = "Too many tries. Wait ${(left + 999) / 1000} s."
+            messageView.text = getString(R.string.pin_wait, ((left + 999) / 1000).toInt())
             handler.postDelayed({ tickLockout() }, 500)
         } else {
             messageView.text = ""
@@ -161,10 +166,10 @@ class PinActivity : Activity() {
 
     private fun refresh() {
         titleView.text = when {
-            creating && firstEntry == null -> if (mode == MODE_CHANGE) "Choose a new parent PIN" else "Create a parent PIN"
-            creating -> "Enter the PIN again"
-            mode == MODE_SETTINGS -> "🔒 Parent PIN needed for Settings"
-            else -> "🔒 Parent PIN"
+            creating && firstEntry == null -> getString(if (mode == MODE_CHANGE) R.string.pin_new else R.string.pin_create)
+            creating -> getString(R.string.pin_again)
+            mode == MODE_SETTINGS -> getString(R.string.pin_settings)
+            else -> getString(R.string.pin_title)
         }
         dotsView.text = "●".repeat(entered.length) + "○".repeat(PIN_LENGTH - entered.length)
         if (lockedForMs() > 0) tickLockout()

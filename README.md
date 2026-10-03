@@ -10,7 +10,24 @@ A small Android app that gives each child their own daily game-time budget on a 
 - **Warnings** at 5 minutes and 1 minute left.
 - **Refills every day at midnight.**
 - **Parent controls behind a PIN:** add/edit/remove children, change minutes, +15 min bonus, reset today, stop now, choose which apps count as games, and change the PIN.
+- **Hebrew and English** (right-to-left in Hebrew). Follows the phone's language; Parents → 🌐 Language switches just Play Time.
 - **Settings lock (optional):** opening the phone's Settings app (or the uninstall screen) asks for the parent PIN, so the kids can't switch the guard off.
+
+<div dir="rtl">
+
+## בעברית 🇮🇱
+
+**זמן משחק** נותן לכל ילד תקציב יומי משלו למשחקים בטלפון משותף (אור ושחר מתחילים עם 45 דקות ביום). הזמן נספר רק כשמשחק פתוח והילד לחץ על השם שלו. אפשר לעצור באמצע ולהמשיך אחר כך, והזמן מתחדש כל יום בחצות.
+
+**התקנה:**
+1. פתחו בטלפון את הקישור והתקינו: https://github.com/mckogan2/phone-time-tracker/releases/latest/download/PlayTime.apk
+2. פתחו את **זמן משחק** ← **🔒 הורים** ← צרו קוד הורים בן 4 ספרות.
+3. תחת **הרשאות**, לחצו **הפעלה** בכל שורה: גישה לנתוני שימוש, הצגה מעל אפליקציות אחרות, התראות, סוללה ללא הגבלה. כשהשתיים הראשונות פועלות יופיע **✅ השומר פועל**.
+4. תחת **משחקים** בדקו את הרשימה (🤖 = נמצא אוטומטית). חסר משחק? **בחירת משחקים**.
+5. הפעילו **נעילת הגדרות הטלפון בקוד**.
+6. שפה: **🌐 שפה** במסך ההורים (או לפי שפת הטלפון).
+
+</div>
 
 ## How it works
 

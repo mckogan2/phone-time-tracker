@@ -37,6 +37,11 @@ android {
         }
     }
 
+    androidResources {
+        // Languages are listed by hand in res/xml/locales_config.xml.
+        generateLocaleConfig = false
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

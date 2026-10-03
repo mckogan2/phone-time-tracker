@@ -51,7 +51,7 @@ object Ui {
         textSize = sizeSp
         setTextColor(color)
         if (bold) setTypeface(typeface, Typeface.BOLD)
-        if (center) gravity = Gravity.CENTER
+        if (center) gravity = Gravity.CENTER else textAlignment = View.TEXT_ALIGNMENT_VIEW_START
     }
 
     fun button(
@@ -104,8 +104,8 @@ object Ui {
     }
 
     /** "32 min" style, rounded up, for notifications and parent screen. */
-    fun formatMinutes(ms: Long): String {
+    fun formatMinutes(context: Context, ms: Long): String {
         val min = (ms.coerceAtLeast(0L) + 59_999) / 60_000
-        return "$min min"
+        return context.getString(R.string.minutes_short, min.toInt())
     }
 }
