@@ -101,14 +101,17 @@ class MyAppActivity : Activity() {
 
     private fun chooseTime() = screen {
         add(Ui.text(this@MyAppActivity, getString(R.string.myapp_how_long), 20f, Ui.MUTED, center = true), topMarginDp = 8)
-        val row = Ui.row(this@MyAppActivity)
-        for ((i, minutes) in listOf(15, 30).withIndex()) {
-            row.addView(Ui.button(this@MyAppActivity, getString(R.string.minutes_short, minutes), sizeSp = 22f) { start(minutes) },
-                LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                    if (i > 0) marginStart = dp(12)
-                })
+        // Two rows of three: 1 3 5 / 10 15 30 minutes.
+        for ((r, minutesRow) in TIME_OPTIONS.chunked(3).withIndex()) {
+            val row = Ui.row(this@MyAppActivity)
+            for ((i, minutes) in minutesRow.withIndex()) {
+                row.addView(Ui.button(this@MyAppActivity, getString(R.string.minutes_short, minutes), sizeSp = 20f) { start(minutes) },
+                    LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                        if (i > 0) marginStart = dp(10)
+                    })
+            }
+            add(row, topMarginDp = if (r == 0) 32 else 10)
         }
-        add(row, topMarginDp = 32)
         add(Ui.button(this@MyAppActivity, getString(R.string.myapp_close), Ui.MUTED) { close() }, topMarginDp = 12)
     }
 
@@ -165,5 +168,6 @@ class MyAppActivity : Activity() {
         const val EXTRA_MORE = "more"
         private const val REQUEST_PARENT = 1
         private const val COUNTDOWN_S = 30
+        private val TIME_OPTIONS = listOf(1, 3, 5, 10, 15, 30)
     }
 }
