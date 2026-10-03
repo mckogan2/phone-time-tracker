@@ -96,6 +96,7 @@ class GuardService : Service() {
         registerReceiver(screenOffReceiver, IntentFilter(Intent.ACTION_SCREEN_OFF))
         lastTick = SystemClock.elapsedRealtime()
         handler.post(tick)
+        Sync.start(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -138,6 +139,7 @@ class GuardService : Service() {
         }
         if (changed || inGame || foregroundPkg in PROTECTED_PACKAGES) enforce()
         updateNotification()
+        Sync.tick(this)
     }
 
     /** Reads the latest "app came to the front" event. Returns true if the front app changed. */
@@ -189,6 +191,7 @@ class GuardService : Service() {
             kid == null -> getString(R.string.who_title)
             store.remainingMs(kid) <= 0 -> {
                 store.pause()
+                Sync.flush(this)
                 getString(R.string.time_up_name, kid.name).also {
                     Toast.makeText(this, it, Toast.LENGTH_LONG).show()
                 }

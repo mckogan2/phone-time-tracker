@@ -1,0 +1,58 @@
+rules_version = '2';
+
+// Play Time family sync. Paste into Firebase console → Firestore Database → Rules → Publish.
+// Each family is visible only to its member phones. A new phone can join only with a valid,
+// unexpired join code, and may then add only itself. Nobody can list or search families.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function familyPath(familyId) {
+      return /databases/$(database)/documents/families/$(familyId);
+    }
+
+    function isMember(familyId) {
+      return signedIn() && request.auth.uid in get(familyPath(familyId)).data.members;
+    }
+
+    match /joinCodes/{code} {
+      // Reading a code is how a new phone finds its family; only while the code is valid.
+      allow get: if signedIn() && resource.data.expiresAt > request.time;
+      // Only family members can make codes for their own family, valid for at most ~24 hours.
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['familyId', 'expiresAt'])
+        && request.auth.uid in getAfter(familyPath(request.resource.data.familyId)).data.members
+        && request.resource.data.expiresAt < request.time + duration.value(25, 'h');
+      allow list, update, delete: if false;
+    }
+
+    match /families/{familyId} {
+      allow get: if signedIn() && request.auth.uid in resource.data.members;
+
+      // A new family starts with only the phone that made it.
+      allow create: if signedIn() && request.resource.data.members == [request.auth.uid];
+
+      allow update: if signedIn() && (
+        // Members can change the family's settings and leave.
+        request.auth.uid in resource.data.members
+        // A new phone may add only itself, with a valid code for this family.
+        || (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'joinCode'])
+          && request.resource.data.members == resource.data.members.concat([request.auth.uid])
+          && exists(/databases/$(database)/documents/joinCodes/$(request.resource.data.joinCode))
+          && get(/databases/$(database)/documents/joinCodes/$(request.resource.data.joinCode)).data.familyId == familyId
+          && get(/databases/$(database)/documents/joinCodes/$(request.resource.data.joinCode)).data.expiresAt > request.time
+        )
+      );
+
+      allow list, delete: if false;
+
+      match /days/{day} {
+        allow read, write: if isMember(familyId);
+      }
+    }
+  }
+}

@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Family sync. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <!-- "Usage access": which app is on screen. Granted by the parent in Settings. -->
     <uses-permission
         android:name="android.permission.PACKAGE_USAGE_STATS"
@@ -46,6 +48,11 @@
             android:excludeFromRecents="true"
             android:exported="false"
             android:taskAffinity="com.mckogan.playtime.pin" />
+
+        <activity
+            android:name=".KidCheckActivity"
+            android:excludeFromRecents="true"
+            android:exported="false" />
 
         <activity
             android:name=".ParentActivity"

@@ -17,6 +17,10 @@ data class Kid(
     val name: String,
     val dailyMinutes: Int,
     val color: Int,
+    /** Secret animal for the "secret picture" protection, or null. */
+    val secretPicture: String? = null,
+    /** "salt:hash" of the kid's secret number, or null. */
+    val secretNumber: String? = null,
 )
 
 /** All app state, kept in SharedPreferences so it survives restarts. */
@@ -55,7 +59,14 @@ class Store(context: Context) {
         val arr = JSONArray(prefs.getString(KEY_KIDS, "[]"))
         return (0 until arr.length()).map { i ->
             val o = arr.getJSONObject(i)
-            Kid(o.getString("id"), o.getString("name"), o.getInt("minutes"), o.getInt("color"))
+            Kid(
+                o.getString("id"),
+                o.getString("name"),
+                o.getInt("minutes"),
+                o.getInt("color"),
+                o.optString("picture").ifEmpty { null },
+                o.optString("number").ifEmpty { null },
+            )
         }
     }
 
@@ -70,14 +81,20 @@ class Store(context: Context) {
                     .put("name", it.name)
                     .put("minutes", it.dailyMinutes)
                     .put("color", it.color)
+                    .put("picture", it.secretPicture ?: "")
+                    .put("number", it.secretNumber ?: "")
             )
         }
         prefs.edit().putString(KEY_KIDS, arr.toString()).apply()
+        sharedChanged()
     }
 
-    fun addKid(name: String, minutes: Int) {
+    /** Adds a child and returns their new ID. */
+    fun addKid(name: String, minutes: Int): String {
         val kids = kids()
-        saveKids(kids + Kid(newId(), name, minutes, KID_COLORS[kids.size % KID_COLORS.size]))
+        val id = newId()
+        saveKids(kids + Kid(id, name, minutes, KID_COLORS[kids.size % KID_COLORS.size]))
+        return id
     }
 
     fun updateKid(id: String, name: String, minutes: Int) {
@@ -87,29 +104,104 @@ class Store(context: Context) {
     fun removeKid(id: String) {
         if (activeKidId() == id) pause()
         saveKids(kids().filterNot { it.id == id })
-        prefs.edit().remove(usedKey(id)).remove(dayKey(id)).apply()
+        prefs.edit().remove(usedKey(id)).remove(dayKey(id)).remove(sharedKey(id)).apply()
+    }
+
+    // ---- "Who's playing" protection ----
+
+    var kidLockMode: String
+        get() = prefs.getString(KEY_KID_LOCK, LOCK_OFF) ?: LOCK_OFF
+        set(value) {
+            prefs.edit().putString(KEY_KID_LOCK, value).apply()
+            sharedChanged()
+        }
+
+    fun setSecretPicture(kidId: String, picture: String?) {
+        saveKids(kids().map { if (it.id == kidId) it.copy(secretPicture = picture) else it })
+    }
+
+    fun setSecretNumber(kidId: String, number: String?) {
+        val stored = number?.let {
+            val salt = ByteArray(8).also { b -> SecureRandom().nextBytes(b) }.toHex()
+            "$salt:${hash(salt, it)}"
+        }
+        saveKids(kids().map { if (it.id == kidId) it.copy(secretNumber = stored) else it })
+    }
+
+    fun checkSecretNumber(kid: Kid, number: String): Boolean {
+        val (salt, h) = kid.secretNumber?.split(':', limit = 2)?.takeIf { it.size == 2 } ?: return false
+        return hash(salt, number) == h
+    }
+
+    /** True if the current protection mode needs a secret this kid doesn't have yet. */
+    fun missingSecret(kid: Kid): Boolean = when (kidLockMode) {
+        LOCK_PICTURE -> kid.secretPicture == null
+        LOCK_NUMBER -> kid.secretNumber == null
+        else -> false
+    }
+
+    fun kidLockedUntil(kidId: String): Long = prefs.getLong("kidlock_$kidId", 0L)
+
+    /** Counts a wrong answer; after [KID_MAX_FAILURES] the kid waits [KID_LOCKOUT_MS]. */
+    fun kidFailed(kidId: String) {
+        val failures = prefs.getInt("kidfail_$kidId", 0) + 1
+        if (failures >= KID_MAX_FAILURES) {
+            prefs.edit().putInt("kidfail_$kidId", 0)
+                .putLong("kidlock_$kidId", System.currentTimeMillis() + KID_LOCKOUT_MS).apply()
+        } else {
+            prefs.edit().putInt("kidfail_$kidId", failures).apply()
+        }
+    }
+
+    fun kidPassed(kidId: String) {
+        prefs.edit().putInt("kidfail_$kidId", 0).apply()
     }
 
     // ---- Daily time ----
+    // Used today = this phone's own counter + other family phones' counters (from sync)
+    //            + adjustments (+15 min bonuses, resets). Everything from an earlier day counts as zero.
 
-    /** Milliseconds used today. Usage from an earlier day counts as zero (midnight reset). */
-    fun usedMs(kidId: String): Long =
+    /** Milliseconds used today, on all family phones. */
+    fun usedMs(kidId: String): Long = myUsedMs(kidId) + othersUsedMs(kidId) + adjustMs(kidId)
+
+    /** Milliseconds counted on this phone today. */
+    fun myUsedMs(kidId: String): Long =
         if (prefs.getString(dayKey(kidId), null) == today()) prefs.getLong(usedKey(kidId), 0L) else 0L
+
+    private fun shared(kidId: String): JSONObject? =
+        prefs.getString(sharedKey(kidId), null)?.let { JSONObject(it) }?.takeIf { it.optString("day") == today() }
+
+    private fun othersUsedMs(kidId: String): Long = shared(kidId)?.optLong("others") ?: 0L
+
+    private fun adjustMs(kidId: String): Long = shared(kidId)?.optLong("adjust") ?: 0L
+
+    private fun saveShared(kidId: String, others: Long, adjust: Long) {
+        val o = JSONObject().put("day", today()).put("others", others).put("adjust", adjust)
+        prefs.edit().putString(sharedKey(kidId), o.toString()).apply()
+    }
 
     fun remainingMs(kid: Kid): Long = kid.dailyMinutes * MINUTE_MS - usedMs(kid.id)
 
     fun addUsed(kidId: String, ms: Long) {
         prefs.edit()
-            .putLong(usedKey(kidId), usedMs(kidId) + ms)
+            .putLong(usedKey(kidId), myUsedMs(kidId) + ms)
             .putString(dayKey(kidId), today())
             .apply()
     }
 
-    /** Extra time for today only: stored as negative usage. */
-    fun addBonus(kidId: String, minutes: Int) = addUsed(kidId, -minutes * MINUTE_MS)
+    private fun adjust(kidId: String, deltaMs: Long) {
+        saveShared(kidId, othersUsedMs(kidId), adjustMs(kidId) + deltaMs)
+        onAdjust?.invoke(kidId, today(), deltaMs)
+    }
 
-    fun resetToday(kidId: String) {
-        prefs.edit().putLong(usedKey(kidId), 0L).putString(dayKey(kidId), today()).apply()
+    /** Extra time for today only. */
+    fun addBonus(kidId: String, minutes: Int) = adjust(kidId, -minutes * MINUTE_MS)
+
+    fun resetToday(kidId: String) = adjust(kidId, -usedMs(kidId))
+
+    /** Sync: the other phones' counters and the shared adjustment for [day]. */
+    fun applyRemoteUsage(kidId: String, day: String, othersMs: Long, adjustMs: Long) {
+        if (day == today()) saveShared(kidId, othersMs, adjustMs)
     }
 
     // ---- Who is playing ----
@@ -142,7 +234,10 @@ class Store(context: Context) {
 
     var autoGames: Boolean
         get() = prefs.getBoolean(KEY_AUTO_GAMES, true)
-        set(value) = prefs.edit().putBoolean(KEY_AUTO_GAMES, value).apply()
+        set(value) {
+            prefs.edit().putBoolean(KEY_AUTO_GAMES, value).apply()
+            sharedChanged()
+        }
 
     private fun addedGames(): Set<String> = prefs.getStringSet(KEY_GAMES, emptySet())!!.toSet()
 
@@ -158,6 +253,7 @@ class Store(context: Context) {
         if (timed && !autoTimed) added += pkg
         if (!timed && autoTimed) excluded += pkg
         prefs.edit().putStringSet(KEY_GAMES, added).putStringSet(KEY_EXCLUDED_GAMES, excluded).apply()
+        sharedChanged()
     }
 
     /** True if the app's developer marked it as a game. */
@@ -188,6 +284,7 @@ class Store(context: Context) {
     fun setPin(pin: String) {
         val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }.toHex()
         prefs.edit().putString(KEY_PIN_SALT, salt).putString(KEY_PIN_HASH, hash(salt, pin)).apply()
+        sharedChanged()
     }
 
     fun checkPin(pin: String): Boolean {
@@ -207,7 +304,10 @@ class Store(context: Context) {
 
     var protectSettings: Boolean
         get() = prefs.getBoolean(KEY_PROTECT_SETTINGS, false)
-        set(value) = prefs.edit().putBoolean(KEY_PROTECT_SETTINGS, value).apply()
+        set(value) {
+            prefs.edit().putBoolean(KEY_PROTECT_SETTINGS, value).apply()
+            sharedChanged()
+        }
 
     fun settingsUnlocked(): Boolean = System.currentTimeMillis() < prefs.getLong(KEY_SETTINGS_UNTIL, 0L)
 
@@ -217,9 +317,58 @@ class Store(context: Context) {
             .apply()
     }
 
+    // ---- Family sync ----
+
+    /** This phone's random ID inside a family. */
+    val phoneId: String
+        get() = prefs.getString(KEY_PHONE_ID, null) ?: newId().also { prefs.edit().putString(KEY_PHONE_ID, it).apply() }
+
+    var familyId: String?
+        get() = prefs.getString(KEY_FAMILY_ID, null)
+        set(value) = prefs.edit().putString(KEY_FAMILY_ID, value).apply()
+
+    /** When the shared settings last changed on this phone (or were taken from another phone). */
+    val settingsUpdatedAt: Long
+        get() = prefs.getLong(KEY_SETTINGS_UPDATED, 0L)
+
+    /** Everything family phones share, as plain values for the online copy. */
+    fun sharedSettings(): Map<String, Any?> = mapOf(
+        "kids" to prefs.getString(KEY_KIDS, "[]"),
+        "autoGames" to autoGames,
+        "addedGames" to addedGames().toList(),
+        "excludedGames" to excludedGames().toList(),
+        "kidLockMode" to kidLockMode,
+        "pinHash" to prefs.getString(KEY_PIN_HASH, null),
+        "pinSalt" to prefs.getString(KEY_PIN_SALT, null),
+        "protectSettings" to protectSettings,
+        "updatedAt" to settingsUpdatedAt,
+    )
+
+    /** Takes the settings saved by another family phone. */
+    fun applySharedSettings(data: Map<String, Any?>) {
+        val e = prefs.edit()
+        (data["kids"] as? String)?.let { e.putString(KEY_KIDS, it) }
+        (data["autoGames"] as? Boolean)?.let { e.putBoolean(KEY_AUTO_GAMES, it) }
+        (data["addedGames"] as? List<*>)?.let { e.putStringSet(KEY_GAMES, it.filterIsInstance<String>().toSet()) }
+        (data["excludedGames"] as? List<*>)?.let { e.putStringSet(KEY_EXCLUDED_GAMES, it.filterIsInstance<String>().toSet()) }
+        (data["kidLockMode"] as? String)?.let { e.putString(KEY_KID_LOCK, it) }
+        val pinHash = data["pinHash"] as? String
+        val pinSalt = data["pinSalt"] as? String
+        if (pinHash != null && pinSalt != null) e.putString(KEY_PIN_HASH, pinHash).putString(KEY_PIN_SALT, pinSalt)
+        (data["protectSettings"] as? Boolean)?.let { e.putBoolean(KEY_PROTECT_SETTINGS, it) }
+        (data["updatedAt"] as? Number)?.let { e.putLong(KEY_SETTINGS_UPDATED, it.toLong()) }
+        e.apply()
+    }
+
+    private fun sharedChanged() {
+        prefs.edit().putLong(KEY_SETTINGS_UPDATED, System.currentTimeMillis()).apply()
+        onSharedChange?.invoke()
+    }
+
+    private fun sharedKey(id: String) = "shared_$id"
     private fun usedKey(id: String) = "used_$id"
     private fun dayKey(id: String) = "day_$id"
-    private fun today() = LocalDate.now().toString()
+    fun today(): String = LocalDate.now().toString()
     private fun newId() = UUID.randomUUID().toString()
 
     private fun hash(salt: String, pin: String): String =
@@ -231,6 +380,23 @@ class Store(context: Context) {
         const val MINUTE_MS = 60_000L
         const val DEFAULT_MINUTES = 45
         const val SETTINGS_UNLOCK_MS = 5 * MINUTE_MS
+
+        const val LOCK_OFF = "off"
+        const val LOCK_PICTURE = "picture"
+        const val LOCK_NUMBER = "number"
+        const val LOCK_PARENT = "parent"
+        const val KID_NUMBER_LENGTH = 3
+        private const val KID_MAX_FAILURES = 3
+        private const val KID_LOCKOUT_MS = 30_000L
+
+        /** Animals a kid can pick as their secret picture. */
+        val SECRET_PICTURES = listOf("🦁", "🐸", "🐵", "🐼", "🐯", "🐶", "🐱", "🐰", "🦄", "🐢", "🐙", "🦋")
+
+        /** Called after a shared setting changes on this phone (set by family sync). */
+        @Volatile var onSharedChange: (() -> Unit)? = null
+
+        /** Called after +15 min / reset on this phone: (kidId, day, deltaMs). Set by family sync. */
+        @Volatile var onAdjust: ((String, String, Long) -> Unit)? = null
 
         val KID_COLORS = intArrayOf(
             0xFF4F7CFF.toInt(), // blue
@@ -256,5 +422,9 @@ class Store(context: Context) {
         private const val KEY_PIN_LOCKED_UNTIL = "pin_locked_until"
         private const val KEY_PROTECT_SETTINGS = "protect_settings"
         private const val KEY_SETTINGS_UNTIL = "settings_until"
+        private const val KEY_KID_LOCK = "kid_lock_mode"
+        private const val KEY_PHONE_ID = "phone_id"
+        private const val KEY_FAMILY_ID = "family_id"
+        private const val KEY_SETTINGS_UPDATED = "settings_updated"
     }
 }

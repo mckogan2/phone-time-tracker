@@ -10,11 +10,18 @@ import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
+import android.text.InputFilter
 import android.text.InputType
+import android.view.View
 import android.widget.EditText
+import android.widget.GridLayout
 import android.widget.LinearLayout
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.ScrollView
 import android.widget.Switch
+import android.widget.TextView
+import android.widget.Toast
 import com.mckogan.playtime.Ui.add
 import com.mckogan.playtime.Ui.dp
 
@@ -42,6 +49,7 @@ class ParentActivity : Activity() {
         super.onResume()
         keepOpen = false
         GuardService.start(this)
+        Sync.start(this)
         if (!isFinishing) render()
     }
 
@@ -117,6 +125,29 @@ class ParentActivity : Activity() {
         for (kid in store.kids()) root.add(kidCard(kid, active?.id == kid.id), topMarginDp = 10)
         root.add(Ui.button(this, getString(R.string.add_child), Ui.MUTED) { editKid(null) }, topMarginDp = 10)
 
+        root.add(section(getString(R.string.section_protection)), topMarginDp = 24)
+        root.add(Ui.text(this, getString(R.string.protection_hint), 14f, Ui.MUTED), topMarginDp = 4)
+        val modes = listOf(
+            Store.LOCK_OFF to R.string.lock_off,
+            Store.LOCK_PICTURE to R.string.lock_picture,
+            Store.LOCK_NUMBER to R.string.lock_number,
+            Store.LOCK_PARENT to R.string.lock_parent,
+        )
+        val group = RadioGroup(this)
+        for ((i, pair) in modes.withIndex()) {
+            group.addView(RadioButton(this).apply {
+                id = i + 1
+                text = getString(pair.second)
+                textSize = 16f
+                isChecked = store.kidLockMode == pair.first
+            })
+        }
+        group.setOnCheckedChangeListener { _, checkedId ->
+            store.kidLockMode = modes[checkedId - 1].first
+            render()
+        }
+        root.add(group, topMarginDp = 4)
+
         root.add(section(getString(R.string.section_games)), topMarginDp = 24)
         val detected = store.detectedGames(refresh = true)
         root.add(Switch(this).apply {
@@ -138,6 +169,9 @@ class ParentActivity : Activity() {
             topMarginDp = 8,
         )
         root.add(Ui.button(this, getString(R.string.choose_games)) { chooseGames() }, topMarginDp = 8)
+
+        root.add(section(getString(R.string.section_sync)), topMarginDp = 24)
+        addSyncSection(root)
 
         root.add(section(getString(R.string.section_security)), topMarginDp = 24)
         root.add(Switch(this).apply {
@@ -175,12 +209,102 @@ class ParentActivity : Activity() {
         return card
     }
 
+    private fun addSyncSection(root: LinearLayout) {
+        if (!Sync.isConfigured(this)) {
+            root.add(Ui.text(this, getString(R.string.sync_not_available), 14f, Ui.MUTED), topMarginDp = 4)
+            return
+        }
+        if (!Sync.isInFamily(this)) {
+            root.add(Ui.text(this, getString(R.string.sync_intro), 14f, Ui.MUTED), topMarginDp = 4)
+            root.add(Ui.button(this, getString(R.string.sync_create)) { createFamily() }, topMarginDp = 8)
+            root.add(Ui.button(this, getString(R.string.sync_join), Ui.MUTED) { joinFamily() }, topMarginDp = 8)
+            return
+        }
+        val phones = Sync.phoneCount
+        root.add(
+            Ui.text(
+                this,
+                if (phones > 0) resources.getQuantityString(R.plurals.sync_on, phones, phones) else getString(R.string.sync_on_unknown),
+                16f,
+                bold = true,
+            ),
+            topMarginDp = 4,
+        )
+        root.add(Ui.button(this, getString(R.string.sync_add_phone)) {
+            toast(R.string.sync_working)
+            Sync.newJoinCode(this, { showCode(it) }, { toast(R.string.sync_failed) })
+        }, topMarginDp = 8)
+        root.add(Ui.button(this, getString(R.string.sync_leave), Ui.MUTED) {
+            AlertDialog.Builder(this)
+                .setTitle(R.string.sync_leave_title)
+                .setMessage(R.string.sync_leave_message)
+                .setPositiveButton(R.string.sync_leave) { _, _ ->
+                    Sync.leaveFamily(this)
+                    render()
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+        }, topMarginDp = 8)
+    }
+
+    private fun createFamily() {
+        toast(R.string.sync_working)
+        Sync.createFamily(this, { code ->
+            if (!isFinishing) {
+                render()
+                showCode(code)
+            }
+        }, { toast(R.string.sync_failed) })
+    }
+
+    private fun showCode(code: String) {
+        if (isFinishing) return
+        AlertDialog.Builder(this)
+            .setTitle(R.string.sync_code_title)
+            .setView(Ui.column(this, 20).apply {
+                add(Ui.text(this@ParentActivity, code.chunked(3).joinToString(" "), 40f, Ui.ACCENT, bold = true, center = true).apply {
+                    textDirection = View.TEXT_DIRECTION_LTR
+                })
+                add(Ui.text(this@ParentActivity, getString(R.string.sync_code_help), 15f), topMarginDp = 12)
+            })
+            .setPositiveButton(R.string.done, null)
+            .show()
+    }
+
+    private fun joinFamily() {
+        val input = EditText(this).apply {
+            hint = getString(R.string.sync_code_hint)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
+            filters = arrayOf(InputFilter.LengthFilter(Sync.CODE_LENGTH + 2))
+            textDirection = View.TEXT_DIRECTION_LTR
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.sync_join)
+            .setMessage(R.string.sync_join_message)
+            .setView(Ui.column(this, 20).apply { addView(input) })
+            .setPositiveButton(R.string.sync_join_button) { _, _ ->
+                val code = input.text.toString().replace(" ", "")
+                toast(R.string.sync_working)
+                Sync.joinFamily(this, code, {
+                    toast(R.string.sync_joined)
+                    if (!isFinishing) render()
+                }, { toast(R.string.sync_bad_code) })
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun toast(text: Int) = Toast.makeText(this, text, Toast.LENGTH_LONG).show()
+
     private fun section(title: String) = Ui.text(this, title, 20f, Ui.ACCENT, bold = true)
 
     private fun kidCard(kid: Kid, playing: Boolean): LinearLayout {
         val card = Ui.card(this)
         val remaining = store.remainingMs(kid)
         card.add(Ui.text(this, kid.name + if (playing) "  " + getString(R.string.playing_badge) else "", 22f, kid.color, bold = true))
+        if (store.missingSecret(kid)) {
+            card.add(Ui.text(this, getString(R.string.no_secret_set), 14f, Ui.DANGER), topMarginDp = 2)
+        }
         card.add(
             Ui.text(
                 this,
@@ -239,6 +363,38 @@ class ParentActivity : Activity() {
             addView(name)
             addView(minutes)
         }
+        val mode = store.kidLockMode
+        var picture = kid?.secretPicture
+        val number = EditText(this).apply {
+            hint = getString(if (kid?.secretNumber != null) R.string.secret_number_keep else R.string.secret_number_hint)
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            filters = arrayOf(InputFilter.LengthFilter(Store.KID_NUMBER_LENGTH))
+        }
+        if (mode == Store.LOCK_PICTURE) {
+            form.add(Ui.text(this, getString(R.string.secret_picture_label), 16f, bold = true), topMarginDp = 12)
+            val grid = GridLayout(this).apply { columnCount = 6 }
+            val cells = mutableListOf<TextView>()
+            fun paint() = cells.forEach {
+                it.background = Ui.rounded(if (it.text == picture) Ui.ACCENT else Ui.TRACK, 12, this)
+            }
+            for (animal in Store.SECRET_PICTURES) {
+                val cell = Ui.text(this, animal, 26f, center = true).apply {
+                    setOnClickListener {
+                        picture = animal
+                        paint()
+                    }
+                }
+                cells += cell
+                grid.addView(cell, GridLayout.LayoutParams().apply {
+                    width = dp(44)
+                    height = dp(44)
+                    setMargins(dp(3), dp(3), dp(3), dp(3))
+                })
+            }
+            paint()
+            form.add(grid, topMarginDp = 6, fill = false)
+        }
+        if (mode == Store.LOCK_NUMBER) form.add(number, topMarginDp = 12)
         AlertDialog.Builder(this)
             .setTitle(if (kid == null) getString(R.string.add_child_title) else getString(R.string.edit_title, kid.name))
             .setView(form)
@@ -246,7 +402,10 @@ class ParentActivity : Activity() {
                 val n = name.text.toString().trim()
                 val m = minutes.text.toString().toIntOrNull()?.coerceIn(0, 24 * 60)
                 if (n.isNotEmpty() && m != null) {
-                    if (kid == null) store.addKid(n, m) else store.updateKid(kid.id, n, m)
+                    val id = if (kid == null) store.addKid(n, m) else kid.id.also { store.updateKid(it, n, m) }
+                    if (mode == Store.LOCK_PICTURE && picture != kid?.secretPicture) store.setSecretPicture(id, picture)
+                    val code = number.text.toString()
+                    if (mode == Store.LOCK_NUMBER && code.length == Store.KID_NUMBER_LENGTH) store.setSecretNumber(id, code)
                 }
                 render()
             }

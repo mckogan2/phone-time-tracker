@@ -6,12 +6,9 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
-import android.view.View
-import android.widget.GridLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.mckogan.playtime.Ui.add
-import com.mckogan.playtime.Ui.dp
 
 /** Parent PIN pad. Creates the PIN the first time, then guards the parent screen and Settings. */
 class PinActivity : Activity() {
@@ -48,7 +45,7 @@ class PinActivity : Activity() {
         root.add(titleView, topMarginDp = 32)
         root.add(dotsView, topMarginDp = 24)
         root.add(messageView, topMarginDp = 8)
-        root.add(keypad(), topMarginDp = 24, fill = false)
+        root.add(Ui.keypad(this) { press(it) }, topMarginDp = 24, fill = false)
         setContentView(root)
         refresh()
     }
@@ -72,32 +69,6 @@ class PinActivity : Activity() {
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
         super.onDestroy()
-    }
-
-    private fun keypad(): GridLayout {
-        // Number pads keep 1-2-3 left to right, also in Hebrew.
-        val grid = GridLayout(this).apply {
-            columnCount = 3
-            layoutDirection = View.LAYOUT_DIRECTION_LTR
-        }
-        val keys = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", "")
-        for (key in keys) {
-            val size = dp(80)
-            val cell = Ui.text(this, key, 28f, bold = true, center = true).apply {
-                if (key.isNotEmpty()) {
-                    background = Ui.rounded(Ui.CARD, 40, this@PinActivity)
-                    setOnClickListener { press(key) }
-                }
-            }
-            val lp = GridLayout.LayoutParams().apply {
-                width = size
-                height = size
-                val m = dp(8)
-                setMargins(m, m, m, m)
-            }
-            grid.addView(cell, lp)
-        }
-        return grid
     }
 
     private fun press(key: String) {

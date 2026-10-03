@@ -45,6 +45,8 @@ class MainActivity : Activity() {
         super.onResume()
         GuardService.start(this)
         GuardService.instance?.hideCover()
+        Sync.start(this)
+        Sync.flush(this)
         render()
     }
 
@@ -135,7 +137,26 @@ class MainActivity : Activity() {
         return card
     }
 
+    /** Tapping a name first asks "is it really you?" (if the parent turned that on). */
     private fun play(kid: Kid) {
+        if (store.kidLockMode == Store.LOCK_OFF) {
+            startPlaying(kid)
+        } else {
+            startActivityForResult(
+                Intent(this, KidCheckActivity::class.java).putExtra(KidCheckActivity.EXTRA_KID, kid.id),
+                REQUEST_KID_CHECK,
+            )
+        }
+    }
+
+    @Deprecated("Activity.onActivityResult is fine for a no-AndroidX app")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQUEST_KID_CHECK || resultCode != RESULT_OK) return
+        store.kid(data?.getStringExtra(KidCheckActivity.EXTRA_KID))?.let { startPlaying(it) }
+    }
+
+    private fun startPlaying(kid: Kid) {
         store.setActive(kid.id)
         val game = blockedGame
         reason = null
@@ -196,5 +217,6 @@ class MainActivity : Activity() {
         const val EXTRA_KID = "kid"
         const val REASON_WHO = "who"
         const val REASON_TIME_UP = "time_up"
+        private const val REQUEST_KID_CHECK = 1
     }
 }

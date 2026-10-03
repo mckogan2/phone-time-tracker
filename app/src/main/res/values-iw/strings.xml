@@ -82,4 +82,43 @@
         <item quantity="many">%1$s: נשארו %2$d דקות!</item>
         <item quantity="other">%1$s: נשארו %2$d דקות!</item>
     </plurals>
+    <string name="check_picture_title">איזו חיה שלך, %1$s?</string>
+    <string name="check_number_title">%1$s, הקלידו את המספר הסודי</string>
+    <string name="check_parent_title">בקשו מהורה לאשר ל%1$s לשחק</string>
+    <string name="check_wrong">לא זה — נסו שוב</string>
+    <string name="no_secret_set">⚠️ לא נבחר סוד — לחצו עריכה</string>
+    <string name="section_protection">מי משחק — הגנה</string>
+    <string name="protection_hint">מונע מילד ללחוץ על השם של אח או אחות ולהשתמש בזמן שלהם.</string>
+    <string name="lock_off">כבוי</string>
+    <string name="lock_picture">תמונה סודית (כל ילד בוחר חיה)</string>
+    <string name="lock_number">מספר סודי (3 ספרות לכל ילד)</string>
+    <string name="lock_parent">הורה מאשר בכל פעם (קוד הורים)</string>
+    <string name="secret_picture_label">חיה סודית</string>
+    <string name="secret_number_hint">מספר סודי (3 ספרות)</string>
+    <string name="secret_number_keep">מספר סודי חדש (ריק = ללא שינוי)</string>
+    <string name="section_sync">סנכרון משפחתי</string>
+    <string name="sync_not_available">הסנכרון עדיין לא זמין בגרסה הזו.</string>
+    <string name="sync_intro">שיתוף הילדים והזמן שלהם עם הטלפון של ההורה השני.</string>
+    <string name="sync_create">יצירת משפחה</string>
+    <string name="sync_join">הצטרפות למשפחה</string>
+    <string name="sync_on_unknown">✅ הסנכרון המשפחתי פועל</string>
+    <string name="sync_add_phone">הוספת טלפון נוסף</string>
+    <string name="sync_working">רגע…</string>
+    <string name="sync_failed">לא הצלחנו להתחבר. בדקו את האינטרנט ונסו שוב.</string>
+    <string name="sync_leave">יציאה מהמשפחה</string>
+    <string name="sync_leave_title">לצאת מהמשפחה?</string>
+    <string name="sync_leave_message">הטלפון ישמור עותק של הילדים אבל יפסיק לשתף זמן עם הטלפונים האחרים.</string>
+    <string name="sync_code_title">קוד משפחה</string>
+    <string name="sync_code_help">בטלפון השני: זמן משחק ← 🔒 הורים ← הצטרפות למשפחה ← הקלידו את הקוד. הקוד תקף ל-24 שעות.</string>
+    <string name="sync_code_hint">קוד בן 6 תווים</string>
+    <string name="sync_join_message">הילדים וההגדרות בטלפון הזה יוחלפו בשל המשפחה.</string>
+    <string name="sync_join_button">הצטרפות</string>
+    <string name="sync_joined">✅ הצטרפתם! הילדים והזמן משותפים עכשיו.</string>
+    <string name="sync_bad_code">הקוד לא עבד. בדקו אותו או בקשו קוד חדש.</string>
+    <plurals name="sync_on">
+        <item quantity="one">✅ הסנכרון פועל — טלפון אחד</item>
+        <item quantity="two">✅ הסנכרון פועל — שני טלפונים</item>
+        <item quantity="many">✅ הסנכרון פועל — %1$d טלפונים</item>
+        <item quantity="other">✅ הסנכרון פועל — %1$d טלפונים</item>
+    </plurals>
 </resources>

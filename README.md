@@ -10,6 +10,8 @@ A small Android app that gives each child their own daily game-time budget on a 
 - **Warnings** at 5 minutes and 1 minute left.
 - **Refills every day at midnight.**
 - **Parent controls behind a PIN:** add/edit/remove children, change minutes, +15 min bonus, reset today, stop now, choose which apps count as games, and change the PIN.
+- **"Who's playing" protection** (Parents → choose one): off, a **secret animal** each child finds among 6 shuffled ones, a **secret 3-digit number**, or **parent approves** each time. Stops a child from using a sibling's time.
+- **Family sync (optional):** the other parent's Android phone shares the same children, settings and daily time. Each family is separate; phones join with a 6-letter family code. No account or sign-in needed.
 - **Hebrew and English** (right-to-left in Hebrew). Follows the phone's language; Parents → 🌐 Language switches just Play Time.
 - **Settings lock (optional):** opening the phone's Settings app (or the uninstall screen) asks for the parent PIN, so the kids can't switch the guard off.
 
@@ -26,6 +28,8 @@ A small Android app that gives each child their own daily game-time budget on a 
 4. תחת **משחקים** בדקו את הרשימה (🤖 = נמצא אוטומטית). חסר משחק? **בחירת משחקים**.
 5. הפעילו **נעילת הגדרות הטלפון בקוד**.
 6. שפה: **🌐 שפה** במסך ההורים (או לפי שפת הטלפון).
+7. **מי משחק — הגנה:** בחרו תמונה סודית, מספר סודי או אישור הורה, וקבעו לכל ילד את הסוד שלו ב"עריכה".
+8. **סנכרון משפחתי:** בטלפון אחד "יצירת משפחה" ← מופיע קוד בן 6 תווים. בטלפון השני "הצטרפות למשפחה" ← מקלידים את הקוד. הזמן של הילדים משותף לשני הטלפונים.
 
 </div>
 
@@ -63,6 +67,21 @@ Play Time deliberately does **not** use an Accessibility Service: phones (Samsun
 - [ ] Restart the phone → the "Play Time is on" notification comes back.
 - [ ] Next day, both clocks are back to 45:00.
 
+## Family sync
+
+**For a family:** on the first phone, Parents → **Family sync** → **Create family**. A 6-letter code appears (valid 24 hours). On the other phone: Parents → **Join family** → type the code. The second phone takes the family's children and settings. Time used on either phone counts for both. Works offline and catches up when back online. **Leave family** turns sharing off again (the phone keeps a copy of the children).
+
+**For the app owner (one time):** sync needs one Firebase project that serves all families. Each family only ever sees its own data (see `firestore.rules`).
+
+1. Go to https://console.firebase.google.com → **Create a project** (e.g. "play-time"). Google Analytics is not needed.
+2. In the project: **Add app → Android**. Package name: `com.mckogan.playtime`. Register, then **download `google-services.json`**.
+3. **Build → Authentication → Get started → Sign-in method → Anonymous → Enable → Save.**
+4. **Build → Firestore Database → Create database** → Production mode → pick a location near you (e.g. `europe-west`) → Create.
+5. In Firestore → **Rules**: replace everything with the contents of [`firestore.rules`](firestore.rules) → **Publish**.
+6. Put `google-services.json` in the `app/` folder of this repository. The next build includes sync. (The values in it are not secret: access is controlled by the rules and the family codes.)
+
+Until step 6, the app builds and works normally; the Family sync section just says it isn't available yet.
+
 ## Troubleshooting: "App not installed"
 
 - **Test versions installed?** Uninstall "Play Time (test A/B)" first.
@@ -86,6 +105,8 @@ Open the project in Android Studio, or run `./gradlew assembleRelease` with the 
 | File | What it does |
 | --- | --- |
 | `GuardService.kt` | Foreground service: watches the foreground app (Usage access), counts time, covers games (overlay), Settings lock, notification |
+| `KidCheckActivity.kt` | "Is it really you?" check: secret animal, secret number or parent PIN |
+| `Sync.kt` | Family sync with Firebase (Firestore + anonymous sign-in) |
 | `BootReceiver.kt` | Restarts the guard after a reboot or update |
 | `Store.kt` | Children, daily usage, games, PIN (salted hash) — saved in SharedPreferences |
 | `MainActivity.kt` | Kids' screen / "Who's playing?" / "Time's up" |

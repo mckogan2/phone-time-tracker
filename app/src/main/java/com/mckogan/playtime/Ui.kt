@@ -7,6 +7,7 @@ import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
+import android.widget.GridLayout
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -86,6 +87,32 @@ object Ui {
             progressBackgroundTintList = ColorStateList.valueOf(TRACK)
             scaleY = 3f
         }
+
+    /** Phone-style number pad (1-2-3 left to right, also in Hebrew). Sends "0".."9" or "⌫". */
+    fun keypad(context: Context, onKey: (String) -> Unit): GridLayout {
+        val grid = GridLayout(context).apply {
+            columnCount = 3
+            layoutDirection = View.LAYOUT_DIRECTION_LTR
+        }
+        val keys = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", "")
+        for (key in keys) {
+            val size = context.dp(80)
+            val cell = text(context, key, 28f, bold = true, center = true).apply {
+                if (key.isNotEmpty()) {
+                    background = rounded(CARD, 40, context)
+                    setOnClickListener { onKey(key) }
+                }
+            }
+            val lp = GridLayout.LayoutParams().apply {
+                width = size
+                height = size
+                val m = context.dp(8)
+                setMargins(m, m, m, m)
+            }
+            grid.addView(cell, lp)
+        }
+        return grid
+    }
 
     fun LinearLayout.add(view: View, topMarginDp: Int = 0, fill: Boolean = true): View {
         val lp = LinearLayout.LayoutParams(

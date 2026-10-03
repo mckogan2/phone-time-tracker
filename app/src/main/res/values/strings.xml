@@ -80,4 +80,41 @@
         <item quantity="one">%1$s: %2$d minute left!</item>
         <item quantity="other">%1$s: %2$d minutes left!</item>
     </plurals>
+    <string name="check_picture_title">Which animal is yours, %1$s?</string>
+    <string name="check_number_title">%1$s, type your secret number</string>
+    <string name="check_parent_title">Ask a parent to let %1$s play</string>
+    <string name="check_wrong">Not this one — try again</string>
+    <string name="no_secret_set">⚠️ No secret set — tap Edit</string>
+    <string name="section_protection">Who\'s playing — protection</string>
+    <string name="protection_hint">Stops a child from tapping a sibling\'s name and using their time.</string>
+    <string name="lock_off">Off</string>
+    <string name="lock_picture">Secret picture (each child picks an animal)</string>
+    <string name="lock_number">Secret number (3 digits per child)</string>
+    <string name="lock_parent">Parent approves each time (parent PIN)</string>
+    <string name="secret_picture_label">Secret animal</string>
+    <string name="secret_number_hint">Secret number (3 digits)</string>
+    <string name="secret_number_keep">New secret number (empty = keep)</string>
+    <string name="section_sync">Family sync</string>
+    <string name="sync_not_available">Sync isn\'t available in this version yet.</string>
+    <string name="sync_intro">Share the children and their time with another parent\'s phone.</string>
+    <string name="sync_create">Create family</string>
+    <string name="sync_join">Join family</string>
+    <string name="sync_on_unknown">✅ Family sync is on</string>
+    <string name="sync_add_phone">Add another phone</string>
+    <string name="sync_working">One moment…</string>
+    <string name="sync_failed">Couldn\'t connect. Check the internet and try again.</string>
+    <string name="sync_leave">Leave family</string>
+    <string name="sync_leave_title">Leave the family?</string>
+    <string name="sync_leave_message">This phone keeps a copy of the children but stops sharing time with the other phones.</string>
+    <string name="sync_code_title">Family code</string>
+    <string name="sync_code_help">On the other phone: Play Time → 🔒 Parents → Join family → type this code. It works for 24 hours.</string>
+    <string name="sync_code_hint">6-letter code</string>
+    <string name="sync_join_message">This phone\'s children and settings will be replaced by the family\'s.</string>
+    <string name="sync_join_button">Join</string>
+    <string name="sync_joined">✅ Joined! Children and time are now shared.</string>
+    <string name="sync_bad_code">That code didn\'t work. Check it, or ask for a new one.</string>
+    <plurals name="sync_on">
+        <item quantity="one">✅ Family sync is on — %1$d phone</item>
+        <item quantity="other">✅ Family sync is on — %1$d phones</item>
+    </plurals>
 </resources>
