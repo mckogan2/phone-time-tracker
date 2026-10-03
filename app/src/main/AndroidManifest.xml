@@ -32,7 +32,7 @@
             android:name=".PinActivity"
             android:excludeFromRecents="true"
             android:exported="false"
-            android:taskAffinity="com.family.playtime.pin" />
+            android:taskAffinity="com.mckogan.playtime.pin" />
 
         <activity
             android:name=".ParentActivity"

@@ -1,4 +1,4 @@
-package com.family.playtime
+package com.mckogan.playtime
 
 import android.app.Activity
 import android.content.Intent
@@ -9,8 +9,8 @@ import android.view.Gravity
 import android.widget.GridLayout
 import android.widget.LinearLayout
 import android.widget.TextView
-import com.family.playtime.Ui.add
-import com.family.playtime.Ui.dp
+import com.mckogan.playtime.Ui.add
+import com.mckogan.playtime.Ui.dp
 
 /** Parent PIN pad. Creates the PIN the first time, then guards the parent screen and Settings. */
 class PinActivity : Activity() {

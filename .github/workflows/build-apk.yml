@@ -25,20 +25,33 @@ jobs:
           ./gradlew --no-daemon assembleRelease
           cp app/build/outputs/apk/release/app-release.apk PlayTime.apk
 
+      # Fails the job if the APK isn't properly signed or can't be read, and logs
+      # the package name, SDK levels and signing certificate.
+      - name: Verify APK
+        run: |
+          BT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+          "$BT/apksigner" verify --verbose --print-certs PlayTime.apk
+          "$BT/aapt2" dump badging PlayTime.apk | head -20
+          if "$BT/aapt2" dump badging PlayTime.apk | grep -q testOnly; then
+            echo "APK is marked testOnly and would not install"; exit 1
+          fi
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: PlayTime-apk
           path: PlayTime.apk
 
-      # On the main branch, also publish a "latest" release so the APK can be
-      # downloaded straight from the phone's browser.
+      # Publish a "latest" release so the APK can be downloaded straight from the
+      # phone's browser (no zip).
       - name: Publish latest release
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ccr-3cd5d074-7tlkgj'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
           name: Play Time (latest)
           prerelease: false
           make_latest: true
+          target_commitish: ${{ github.sha }}
+          body: "Built from ${{ github.ref_name }} @ ${{ github.sha }}"
           files: PlayTime.apk

@@ -17,10 +17,10 @@ A normal app can't close other apps. Play Time uses an **Accessibility Service**
 
 ## Getting the app onto the phone
 
-1. **Download the APK.** Every push builds the app with GitHub Actions:
-   - From a computer: GitHub → **Actions** → latest *Build APK* run → **PlayTime-apk** (a zip containing `PlayTime.apk`).
-   - Once this code is on `main`: GitHub → **Releases** → *Play Time (latest)* → `PlayTime.apk`, which you can open directly on the phone.
-2. **Install it.** Open `PlayTime.apk` on the phone and allow your browser/Files app to "install unknown apps".
+1. **Download the APK on the phone** (sign in to GitHub if asked):
+   https://github.com/mckogan2/phone-time-tracker/releases/latest/download/PlayTime.apk
+   (Backup: GitHub → **Actions** → latest *Build APK* run → **PlayTime-apk**, a zip to extract.)
+2. **Install it.** Open `PlayTime.apk` on the phone and allow your browser/Files app to "install unknown apps". If it says **"App not installed"**, see *Troubleshooting* below.
 3. **Android 13 and newer:** Settings → Apps → Play Time → ⋮ (top right) → **Allow restricted settings**. Without this, Android won't let you turn on the guard for an app that didn't come from the Play Store.
 4. Open **Play Time** → **🔒 Parents** → create a 4-digit PIN.
 5. Tap **Turn on guard** → find *Play Time* in the list → switch it **on**.
@@ -38,6 +38,15 @@ A normal app can't close other apps. Play Time uses an **Accessibility Service**
 - [ ] Turn the screen off while playing → turn it on and open the game → it asks again.
 - [ ] Open the phone's Settings app → it asks for the PIN.
 - [ ] Next day, both clocks are back to 45:00.
+
+## Troubleshooting: "App not installed"
+
+- **An older Play Time is installed.** Settings → Apps → search "Play Time" → Uninstall, then install again. (Builds from before Oct 3, 2026 used a different app ID and signing key.)
+- **Play Protect** may ask about an unknown app: choose *More details → Install anyway*.
+- **Storage full:** free up some space.
+- Samsung **Auto Blocker** (Settings → Security and privacy → Auto Blocker) must be off to install apps from outside the store.
+
+Every build is signed with the same key (`app/playtime.keystore`), so new versions install as updates over the old one and keep your settings. Anyone who can see this repository could sign an app with that key; that's fine for a private family app, but keep the repository private.
 
 ## Known limits
 

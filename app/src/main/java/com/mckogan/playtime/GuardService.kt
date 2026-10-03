@@ -1,4 +1,4 @@
-package com.family.playtime
+package com.mckogan.playtime
 
 import android.accessibilityservice.AccessibilityService
 import android.app.Notification

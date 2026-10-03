@@ -1,4 +1,4 @@
-package com.family.playtime
+package com.mckogan.playtime
 
 import android.Manifest
 import android.app.Activity
@@ -10,8 +10,8 @@ import android.view.Gravity
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
-import com.family.playtime.Ui.add
-import com.family.playtime.Ui.dp
+import com.mckogan.playtime.Ui.add
+import com.mckogan.playtime.Ui.dp
 
 /**
  * The kids' screen. Also shown on top of a game when nobody has picked their name yet
@@ -186,7 +186,7 @@ class MainActivity : Activity() {
     }
 
     companion object {
-        const val ACTION_PAUSE = "com.family.playtime.PAUSE"
+        const val ACTION_PAUSE = "com.mckogan.playtime.PAUSE"
         const val EXTRA_REASON = "reason"
         const val EXTRA_GAME = "game"
         const val EXTRA_KID = "kid"

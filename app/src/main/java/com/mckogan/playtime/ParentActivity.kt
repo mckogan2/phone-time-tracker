@@ -1,4 +1,4 @@
-package com.family.playtime
+package com.mckogan.playtime
 
 import android.Manifest
 import android.app.Activity
@@ -14,8 +14,8 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Switch
-import com.family.playtime.Ui.add
-import com.family.playtime.Ui.dp
+import com.mckogan.playtime.Ui.add
+import com.mckogan.playtime.Ui.dp
 
 /** Parent controls. Only reachable through the PIN pad, and closes as soon as it leaves the screen. */
 class ParentActivity : Activity() {
