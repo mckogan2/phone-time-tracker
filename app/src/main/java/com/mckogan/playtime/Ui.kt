@@ -147,6 +147,22 @@ object Ui {
         return "%d:%02d".format(totalSec / 60, totalSec % 60)
     }
 
+    /** A filled circle in [color] with the first letter of [name]. */
+    fun avatar(context: Context, name: String, color: Int, sizeDp: Int): TextView {
+        val size = context.dp(sizeDp)
+        return text(context, name.trim().take(1).uppercase(), sizeDp * 0.45f, 0xFFFFFFFF.toInt(), bold = true, center = true).apply {
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(color)
+            }
+            layoutParams = LinearLayout.LayoutParams(size, size)
+        }
+    }
+
+    /** Clock time like "14:30", in the phone's 12/24-hour style. */
+    fun formatTime(context: Context, millis: Long): String =
+        android.text.format.DateFormat.getTimeFormat(context).format(java.util.Date(millis))
+
     /** "32 min" style, rounded up, for notifications and parent screen. */
     fun formatMinutes(context: Context, ms: Long): String {
         val min = (ms.coerceAtLeast(0L) + 59_999) / 60_000

@@ -172,12 +172,61 @@ class Store(context: Context) {
 
     fun remainingMs(kid: Kid): Long = kid.dailyMinutes * MINUTE_MS - usedMs(kid.id)
 
-    fun addUsed(kidId: String, ms: Long) {
-        prefs.edit()
+    fun addUsed(kidId: String, ms: Long, pkg: String? = null) {
+        val e = prefs.edit()
             .putLong(usedKey(kidId), myUsedMs(kidId) + ms)
             .putString(dayKey(kidId), today())
-            .apply()
+        if (pkg != null) {
+            val mine = myGames()
+            val kid = mine.optJSONObject(kidId) ?: JSONObject().also { mine.put(kidId, it) }
+            kid.put(pkg, kid.optLong(pkg) + ms)
+            e.putString(KEY_MY_GAMES, JSONObject().put("day", today()).put("kids", mine).toString())
+        }
+        e.apply()
     }
+
+    // ---- Per-game time today (for the daily summary) ----
+
+    /** {kidId: {pkg: ms}} counted on this phone today. */
+    fun myGames(): JSONObject = dayJson(KEY_MY_GAMES)
+
+    private fun dayJson(key: String): JSONObject {
+        val o = prefs.getString(key, null)?.let { JSONObject(it) } ?: return JSONObject()
+        return if (o.optString("day") == today()) o.optJSONObject("kids") ?: JSONObject() else JSONObject()
+    }
+
+    /** Sync: other phones' per-game time today, {kidId: {pkg: ms}}. */
+    fun applyRemoteGames(day: String, games: JSONObject) {
+        if (day == today()) prefs.edit().putString(KEY_OTHER_GAMES, JSONObject().put("day", day).put("kids", games).toString()).apply()
+    }
+
+    /** Minutes per game for [kidId] today on all family phones, most played first. */
+    fun gamesToday(kidId: String): List<Pair<String, Long>> {
+        val total = mutableMapOf<String, Long>()
+        for (source in listOf(myGames(), dayJson(KEY_OTHER_GAMES))) {
+            val kid = source.optJSONObject(kidId) ?: continue
+            for (pkg in kid.keys()) total[pkg] = (total[pkg] ?: 0L) + kid.optLong(pkg)
+        }
+        return total.entries.filter { it.value > 0 }.sortedByDescending { it.value }.map { it.key to it.value }
+    }
+
+    // ---- Parent playing (this phone only) ----
+
+    var parentPlayingUntil: Long
+        get() = prefs.getLong(KEY_PARENT_UNTIL, 0L)
+        set(value) = prefs.edit().putLong(KEY_PARENT_UNTIL, value).apply()
+
+    fun parentPlaying(): Boolean = System.currentTimeMillis() < parentPlayingUntil
+
+    // ---- Floating bubble position (this phone only) ----
+
+    var bubbleX: Int
+        get() = prefs.getInt(KEY_BUBBLE_X, -1)
+        set(value) = prefs.edit().putInt(KEY_BUBBLE_X, value).apply()
+
+    var bubbleY: Int
+        get() = prefs.getInt(KEY_BUBBLE_Y, -1)
+        set(value) = prefs.edit().putInt(KEY_BUBBLE_Y, value).apply()
 
     private fun adjust(kidId: String, deltaMs: Long) {
         saveShared(kidId, othersUsedMs(kidId), adjustMs(kidId) + deltaMs)
@@ -418,6 +467,11 @@ class Store(context: Context) {
         private const val KEY_ACTIVE_SINCE = "active_since"
         private const val KEY_GAMES = "games"
         private const val KEY_ONBOARDED = "onboarded"
+        private const val KEY_MY_GAMES = "my_games"
+        private const val KEY_OTHER_GAMES = "other_games"
+        private const val KEY_PARENT_UNTIL = "parent_until"
+        private const val KEY_BUBBLE_X = "bubble_x"
+        private const val KEY_BUBBLE_Y = "bubble_y"
         private const val KEY_EXCLUDED_GAMES = "excluded_games"
         private const val KEY_AUTO_GAMES = "auto_games"
         private const val DETECT_CACHE_MS = 60_000L

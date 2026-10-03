@@ -132,4 +132,16 @@
     <string name="welcome_other_later">לא עכשיו</string>
     <string name="welcome_offline">אין אינטרנט כרגע — לחצו \"לא עכשיו\" ועשו את זה אחר כך מהורים.</string>
     <string name="welcome_join_steps">בטלפון של ההורה השני: זמן משחק ← 🔒 הורים ← סנכרון משפחתי ← הוספת טלפון נוסף. הקלידו כאן את הקוד.</string>
+    <string name="parent_playing">🎮 הורה משחק</string>
+    <string name="parent_playing_hint">המשחקים שלכם לא ייחסמו ולא ייספרו בטלפון הזה לזמן מה.</string>
+    <string name="parent_playing_until">🎮 הורה משחק עד %1$s</string>
+    <string name="parent_playing_end">סיום משחק הורה</string>
+    <string name="setup_needed_parent">⚠️ צריך להשלים הגדרה — ראו הגדרות</string>
+    <string name="tab_kids">ילדים</string>
+    <string name="tab_games">משחקים</string>
+    <string name="tab_settings">הגדרות</string>
+    <string name="section_today">היום</string>
+    <string name="today_nothing">עדיין אין ילדים.</string>
+    <string name="today_line">%1$s — %2$s</string>
+    <string name="all_set">✅ הכול מוכן — לחצו כדי לראות הרשאות</string>
 </resources>

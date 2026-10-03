@@ -10,6 +10,11 @@ A small Android app that gives each child their own daily game-time budget on a 
 - **Warnings** at 5 minutes and 1 minute left.
 - **Refills every day at midnight.**
 - **Parent controls behind a PIN:** add/edit/remove children, change minutes, +15 min bonus, reset today, stop now, choose which apps count as games, and change the PIN.
+- **Time bubble on the game:** a small "⏸ 12 min" pill in the child's color shows the minutes left; tap it to pause, drag it out of the way. It turns red in the last minute.
+- **Tap your avatar to play:** big round avatars on the kids' screen; one tap starts.
+- **Parent playing:** Parents → 15/30/60 min during which your own games on this phone aren't blocked or counted.
+- **Today summary:** Parents → Kids shows how long each child played today and on which games (across all family phones).
+- **Tidy parent screen:** Kids · Games · Settings tabs; permissions fold into "✅ All set".
 - **"Who's playing" protection** (Parents → choose one): off, a **secret animal** each child finds among 6 shuffled ones, a **secret 3-digit number**, or **parent approves** each time. Stops a child from using a sibling's time.
 - **Family sync (optional):** the other parent's Android phone shares the same children, settings and daily time. Each family is separate; phones join with a 6-letter family code. No account or sign-in needed.
 - **Hebrew and English** (right-to-left in Hebrew). Follows the phone's language; Parents → 🌐 Language switches just Play Time.
@@ -28,6 +33,8 @@ A small Android app that gives each child their own daily game-time budget on a 
 4. תחת **משחקים** בדקו את הרשימה (🤖 = נמצא אוטומטית). חסר משחק? **בחירת משחקים**.
 5. הפעילו **נעילת הגדרות הטלפון בקוד**.
 6. שפה: **🌐 שפה** במסך ההורים (או לפי שפת הטלפון).
+**חדש:** בועת זמן על המשחק (לחיצה = הפסקה, גרירה = הזזה), לחיצה על העיגול של הילד כדי לשחק, "הורה משחק" ל-15/30/60 דקות, וסיכום "היום" — כמה כל ילד שיחק ובאילו משחקים.
+
 7. **מי משחק — הגנה:** בחרו תמונה סודית, מספר סודי או אישור הורה, וקבעו לכל ילד את הסוד שלו ב"עריכה".
 8. **סנכרון משפחתי:** בטלפון אחד "יצירת משפחה" ← מופיע קוד בן 6 תווים. בטלפון השני "הצטרפות למשפחה" ← מקלידים את הקוד. הזמן של הילדים משותף לשני הטלפונים.
 

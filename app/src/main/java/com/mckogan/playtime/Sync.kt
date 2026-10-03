@@ -116,13 +116,24 @@ object Sync {
             if (error != null || snap == null) return@addSnapshotListener
             val kids = snap.get("kids") as? Map<*, *> ?: return@addSnapshotListener
             val me = store.phoneId
+            val otherGames = org.json.JSONObject()
             for ((kidId, value) in kids) {
                 val entry = value as? Map<*, *> ?: continue
                 val devices = entry["devices"] as? Map<*, *> ?: emptyMap<Any, Any>()
                 val others = devices.filterKeys { it != me }.values.sumOf { (it as? Number)?.toLong() ?: 0L }
                 val adjust = (entry["adjustMs"] as? Number)?.toLong() ?: 0L
                 store.applyRemoteUsage(kidId.toString(), date, others, adjust)
+                // Per-game time from the other phones, for the daily summary.
+                val perGame = org.json.JSONObject()
+                (entry["games"] as? Map<*, *>)?.filterKeys { it != me }?.values?.forEach { phone ->
+                    (phone as? Map<*, *>)?.forEach { (pkg, ms) ->
+                        val key = pkg.toString()
+                        perGame.put(key, perGame.optLong(key) + ((ms as? Number)?.toLong() ?: 0L))
+                    }
+                }
+                otherGames.put(kidId.toString(), perGame)
             }
+            store.applyRemoteGames(date, otherGames)
         }
     }
 
@@ -158,7 +169,9 @@ object Sync {
             val key = "$date/${kid.id}"
             if (lastPushed[key] == ms) continue
             lastPushed[key] = ms
-            kids[kid.id] = mapOf("devices" to mapOf(me to ms))
+            val games = store.myGames().optJSONObject(kid.id)
+            val gameMap = games?.keys()?.asSequence()?.associateWith { games.optLong(it) } ?: emptyMap()
+            kids[kid.id] = mapOf("devices" to mapOf(me to ms), "games" to mapOf(me to gameMap))
         }
         if (kids.isNotEmpty()) day(familyId, date).set(mapOf("kids" to kids), SetOptions.merge())
     }

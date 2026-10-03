@@ -60,6 +60,10 @@ class MainActivity : Activity() {
             store.pause()
             reason = null
             blockedGame = null
+        } else if (intent.action == ACTION_END_PARENT) {
+            store.parentPlayingUntil = 0L
+            reason = null
+            blockedGame = null
         } else {
             reason = intent.getStringExtra(EXTRA_REASON)
             blockedGame = intent.getStringExtra(EXTRA_GAME)
@@ -96,6 +100,16 @@ class MainActivity : Activity() {
             root.add(banner, topMarginDp = 16)
         }
 
+        if (store.parentPlaying()) {
+            val banner = Ui.card(this, 0xFFE6F0FF.toInt())
+            banner.add(Ui.text(this, getString(R.string.parent_playing_until, Ui.formatTime(this, store.parentPlayingUntil)), 16f, bold = true))
+            banner.add(Ui.button(this, getString(R.string.parent_playing_end), Ui.MUTED, 16f) {
+                store.parentPlayingUntil = 0L
+                render()
+            }, topMarginDp = 8)
+            root.add(banner, topMarginDp = 16)
+        }
+
         for (kid in store.kids()) root.add(kidCard(kid, active), topMarginDp = 16)
 
         if (active != null && blockedGame == null) root.add(gamePicker(), topMarginDp = 20)
@@ -121,24 +135,37 @@ class MainActivity : Activity() {
     private fun kidCard(kid: Kid, active: Kid?): LinearLayout {
         val remaining = store.remainingMs(kid)
         val total = kid.dailyMinutes * Store.MINUTE_MS
+        val playing = active?.id == kid.id
+        val done = remaining <= 0
         val card = Ui.card(this)
 
-        card.add(Ui.text(this, kid.name, 28f, kid.color, bold = true))
-        card.add(Ui.text(this, getString(R.string.time_left, Ui.formatClock(remaining)), 40f, bold = true), topMarginDp = 4)
-        card.add(Ui.progress(this, if (total > 0) remaining.toFloat() / total else 0f, kid.color), topMarginDp = 12)
+        // Big round avatar + name and time; tapping anywhere on the card means "I want to play".
+        val top = Ui.row(this)
+        top.addView(Ui.avatar(this, kid.name, if (done) Ui.MUTED else kid.color, 72))
+        val info = Ui.column(this).apply { setPadding(dp(16), 0, dp(16), 0) }
+        info.add(Ui.text(this, kid.name + if (playing) "  " + getString(R.string.playing_badge) else "", 26f, kid.color, bold = true))
+        info.add(
+            Ui.text(
+                this,
+                if (done) getString(R.string.done_today) else getString(R.string.time_left, Ui.formatClock(remaining)),
+                if (done) 20f else 32f,
+                if (done) Ui.MUTED else Ui.TEXT,
+                bold = true,
+            ),
+        )
+        top.addView(info, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        if (!done && !playing) top.addView(Ui.text(this, "▶", 34f, kid.color, bold = true))
+        card.add(top)
+        card.add(Ui.progress(this, if (total > 0) remaining.toFloat() / total else 0f, kid.color), topMarginDp = 16)
 
-        val button = when {
-            active?.id == kid.id -> Ui.button(this, getString(R.string.pause), Ui.MUTED) {
+        when {
+            playing -> card.add(Ui.button(this, getString(R.string.pause), Ui.MUTED) {
                 store.pause()
                 render()
-            }
-            remaining > 0 -> Ui.button(this, getString(R.string.play), kid.color) { play(kid) }
-            else -> Ui.button(this, getString(R.string.done_today), Ui.TRACK) {}.apply {
-                setTextColor(Ui.MUTED)
-                isEnabled = false
-            }
+            }, topMarginDp = 16)
+            !done -> card.setOnClickListener { play(kid) }
+            else -> card.alpha = 0.6f
         }
-        card.add(button, topMarginDp = 16)
         return card
     }
 
@@ -221,6 +248,7 @@ class MainActivity : Activity() {
 
     companion object {
         const val ACTION_PAUSE = "com.mckogan.playtime.PAUSE"
+        const val ACTION_END_PARENT = "com.mckogan.playtime.END_PARENT"
         const val EXTRA_REASON = "reason"
         const val EXTRA_GAME = "game"
         const val EXTRA_KID = "kid"

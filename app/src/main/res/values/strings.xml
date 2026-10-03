@@ -128,4 +128,16 @@
     <string name="welcome_other_later">Not now</string>
     <string name="welcome_offline">No internet right now — tap Not now and do it later from Parents.</string>
     <string name="welcome_join_steps">On the other parent\'s phone: Play Time → 🔒 Parents → Family sync → Add another phone. Type the code here.</string>
+    <string name="parent_playing">🎮 Parent playing</string>
+    <string name="parent_playing_hint">Your own games aren\'t blocked or counted on this phone for a while.</string>
+    <string name="parent_playing_until">🎮 Parent playing until %1$s</string>
+    <string name="parent_playing_end">End parent playing</string>
+    <string name="setup_needed_parent">⚠️ Setup needed — see Settings</string>
+    <string name="tab_kids">Kids</string>
+    <string name="tab_games">Games</string>
+    <string name="tab_settings">Settings</string>
+    <string name="section_today">Today</string>
+    <string name="today_nothing">No children yet.</string>
+    <string name="today_line">%1$s — %2$s</string>
+    <string name="all_set">✅ All set — tap to see permissions</string>
 </resources>

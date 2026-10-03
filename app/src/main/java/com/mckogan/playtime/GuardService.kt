@@ -1,5 +1,6 @@
 package com.mckogan.playtime
 
+import android.annotation.SuppressLint
 import android.app.AppOpsManager
 import android.app.Notification
 import android.app.NotificationChannel
@@ -24,10 +25,15 @@ import android.os.SystemClock
 import android.provider.Settings
 import android.view.Gravity
 import android.view.View
+import android.view.MotionEvent
+import android.view.ViewConfiguration
 import android.view.WindowManager
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import com.mckogan.playtime.Ui.add
+import com.mckogan.playtime.Ui.dp
+import kotlin.math.abs
 
 /**
  * The guard. A foreground service that checks once a second which app is in front (Usage access),
@@ -112,6 +118,7 @@ class GuardService : Service() {
         handler.removeCallbacks(tick)
         runCatching { unregisterReceiver(screenOffReceiver) }
         hideCover()
+        hideBubble()
         anchor?.let { runCatching { windows.removeView(it) } }
         anchor = null
         super.onDestroy()
@@ -125,11 +132,12 @@ class GuardService : Service() {
         ensureAnchor()
         val changed = pollForeground()
 
-        val kid = store.activeKid()
+        val parentPlaying = store.parentPlaying()
+        val kid = if (parentPlaying) null else store.activeKid()
         val inGame = foregroundPkg in store.games()
         if (kid != null) {
             if (inGame && power.isInteractive) {
-                store.addUsed(kid.id, delta)
+                store.addUsed(kid.id, delta, foregroundPkg)
                 lastGameSeen = System.currentTimeMillis()
                 warnIfLow(kid)
             } else {
@@ -138,6 +146,8 @@ class GuardService : Service() {
             }
         }
         if (changed || inGame || foregroundPkg in PROTECTED_PACKAGES) enforce()
+        val activeKid = if (parentPlaying) null else store.activeKid()
+        updateBubble(activeKid, activeKid != null && inGame && cover == null && power.isInteractive)
         updateNotification()
         Sync.tick(this)
     }
@@ -182,7 +192,7 @@ class GuardService : Service() {
             return
         }
 
-        if (pkg !in store.games()) {
+        if (pkg !in store.games() || store.parentPlaying()) {
             hideCover()
             return
         }
@@ -260,6 +270,99 @@ class GuardService : Service() {
         if (runCatching { windows.addView(box, lp) }.isSuccess) cover = box
     }
 
+    // ---- Floating time bubble ----
+
+    private var bubble: TextView? = null
+    private var bubbleParams: WindowManager.LayoutParams? = null
+
+    /** The "⏸ 12′" pill over the game: shows minutes left, tap to pause, drag to move. */
+    private fun updateBubble(kid: Kid?, show: Boolean) {
+        if (!show || kid == null || !Settings.canDrawOverlays(this)) {
+            hideBubble()
+            return
+        }
+        val view = bubble ?: createBubble() ?: return
+        val remaining = store.remainingMs(kid)
+        view.text = "⏸ " + Ui.formatMinutes(this, remaining)
+        view.background = Ui.rounded(if (remaining <= Store.MINUTE_MS) Ui.DANGER else kid.color, 24, this)
+    }
+
+    @SuppressLint("ClickableViewAccessibility") // Tap is handled in the touch listener (drag vs. tap).
+    private fun createBubble(): TextView? {
+        val view = Ui.text(this, "", 18f, 0xFFFFFFFF.toInt(), bold = true, center = true).apply {
+            val p = dp(10)
+            setPadding(p + p / 2, p, p + p / 2, p)
+            elevation = dp(6).toFloat()
+        }
+        val rtl = resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL
+        val lp = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            overlayType(),
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT,
+        ).apply {
+            gravity = Gravity.TOP or Gravity.LEFT
+            x = store.bubbleX.takeIf { it >= 0 }
+                ?: if (rtl) dp(12) else resources.displayMetrics.widthPixels - dp(150)
+            y = store.bubbleY.takeIf { it >= 0 } ?: dp(72)
+        }
+        val slop = ViewConfiguration.get(this).scaledTouchSlop
+        var downX = 0f
+        var downY = 0f
+        var startX = 0
+        var startY = 0
+        var dragged = false
+        view.setOnTouchListener { _, e ->
+            when (e.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    downX = e.rawX
+                    downY = e.rawY
+                    startX = lp.x
+                    startY = lp.y
+                    dragged = false
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = e.rawX - downX
+                    val dy = e.rawY - downY
+                    if (dragged || abs(dx) > slop || abs(dy) > slop) {
+                        dragged = true
+                        lp.x = (startX + dx).toInt().coerceAtLeast(0)
+                        lp.y = (startY + dy).toInt().coerceAtLeast(0)
+                        runCatching { windows.updateViewLayout(view, lp) }
+                    }
+                }
+                MotionEvent.ACTION_UP -> {
+                    if (dragged) {
+                        store.bubbleX = lp.x
+                        store.bubbleY = lp.y
+                    } else {
+                        pauseFromBubble()
+                    }
+                }
+            }
+            true
+        }
+        if (runCatching { windows.addView(view, lp) }.isFailure) return null
+        bubble = view
+        bubbleParams = lp
+        return view
+    }
+
+    private fun pauseFromBubble() {
+        store.pause()
+        Sync.flush(this)
+        hideBubble()
+        enforce()
+        updateNotification()
+    }
+
+    private fun hideBubble() {
+        bubble?.let { runCatching { windows.removeView(it) } }
+        bubble = null
+        bubbleParams = null
+    }
+
     fun hideCover() {
         cover?.let { runCatching { windows.removeView(it) } }
         cover = null
@@ -281,6 +384,7 @@ class GuardService : Service() {
     }
 
     private fun notificationTitle(): String {
+        if (store.parentPlaying()) return getString(R.string.parent_playing_until, Ui.formatTime(this, store.parentPlayingUntil))
         val kid = store.activeKid() ?: return getString(R.string.guard_running)
         return getString(R.string.notif_playing, kid.name, Ui.formatMinutes(this, store.remainingMs(kid)))
     }
@@ -302,7 +406,14 @@ class GuardService : Service() {
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setContentIntent(open)
-        if (store.activeKid() != null) {
+        if (store.parentPlaying()) {
+            val end = PendingIntent.getActivity(
+                this, 2,
+                Intent(this, MainActivity::class.java).setAction(MainActivity.ACTION_END_PARENT),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
+            builder.addAction(Notification.Action.Builder(null, getString(R.string.parent_playing_end), end).build())
+        } else if (store.activeKid() != null) {
             val pause = PendingIntent.getActivity(
                 this, 1,
                 Intent(this, MainActivity::class.java).setAction(MainActivity.ACTION_PAUSE),

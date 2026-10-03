@@ -34,6 +34,10 @@ class ParentActivity : Activity() {
     private var keepOpen = false
     private var stoppedAt = 0L
 
+    /** Which tab is open (null = pick one on first render). */
+    private var tab: String? = null
+    private var showPermissions = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         store = Store(this)
@@ -63,62 +67,75 @@ class ParentActivity : Activity() {
     private fun render() {
         val root = Ui.column(this, 20)
         root.add(Ui.text(this, getString(R.string.parent_title), 28f, bold = true))
+        root.add(parentPlayingCard(), topMarginDp = 12)
 
-        root.add(section(getString(R.string.section_permissions)), topMarginDp = 20)
         val guardOn = GuardService.isReady(this)
-        root.add(
-            Ui.text(
-                this,
-                getString(if (guardOn) R.string.guard_on else R.string.guard_off),
-                16f,
-                if (guardOn) Ui.TEXT else Ui.DANGER,
-                bold = true,
-            ),
-            topMarginDp = 8,
-        )
-        root.add(
-            permissionRow(
-                getString(R.string.perm_usage),
-                getString(R.string.perm_usage_hint),
-                GuardService.hasUsageAccess(this),
-            ) { openSystem(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) },
-            topMarginDp = 10,
-        )
-        root.add(
-            permissionRow(
-                getString(R.string.perm_overlay),
-                getString(R.string.perm_overlay_hint),
-                GuardService.canOverlay(this),
-            ) {
-                openSystem(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
-            },
-            topMarginDp = 10,
-        )
-        root.add(
-            permissionRow(
-                getString(R.string.perm_notif),
-                getString(R.string.perm_notif_hint),
-                Build.VERSION.SDK_INT < 33 ||
-                    checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED,
-            ) {
-                openSystem(
-                    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-                )
-            },
-            topMarginDp = 10,
-        )
-        root.add(
-            permissionRow(
-                getString(R.string.perm_battery),
-                getString(R.string.perm_battery_hint),
-                getSystemService(PowerManager::class.java)!!.isIgnoringBatteryOptimizations(packageName),
-            ) {
-                openSystem(
-                    Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName"))
-                )
-            },
-            topMarginDp = 10,
-        )
+        if (tab == null) tab = if (guardOn) TAB_KIDS else TAB_SETTINGS
+        if (!guardOn) {
+            root.add(Ui.text(this, getString(R.string.setup_needed_parent), 15f, Ui.DANGER, bold = true), topMarginDp = 12)
+        }
+        root.add(tabBar(), topMarginDp = 16)
+
+        when (tab) {
+            TAB_KIDS -> kidsTab(root)
+            TAB_GAMES -> gamesTab(root)
+            else -> settingsTab(root, guardOn)
+        }
+
+        root.add(Ui.button(this, getString(R.string.done), Ui.TEXT) { finish() }, topMarginDp = 32)
+
+        setContentView(ScrollView(this).apply {
+            setBackgroundColor(Ui.BG)
+            addView(root)
+        })
+    }
+
+    private fun tabBar(): LinearLayout {
+        val bar = Ui.row(this)
+        for ((id, label) in listOf(TAB_KIDS to R.string.tab_kids, TAB_GAMES to R.string.tab_games, TAB_SETTINGS to R.string.tab_settings)) {
+            val selected = tab == id
+            bar.addView(
+                Ui.button(this, getString(label), if (selected) Ui.ACCENT else Ui.TRACK, 15f) {
+                    tab = id
+                    render()
+                }.apply {
+                    if (!selected) setTextColor(Ui.TEXT)
+                    setPadding(dp(4), dp(10), dp(4), dp(10))
+                },
+                weighted(leftMarginDp = if (id == TAB_KIDS) 0 else 6),
+            )
+        }
+        return bar
+    }
+
+    /** "Parent playing": your own games aren't blocked or counted on this phone for a while. */
+    private fun parentPlayingCard(): LinearLayout {
+        val card = Ui.card(this, 0xFFE6F0FF.toInt())
+        if (store.parentPlaying()) {
+            card.add(Ui.text(this, getString(R.string.parent_playing_until, Ui.formatTime(this, store.parentPlayingUntil)), 16f, bold = true))
+            card.add(Ui.button(this, getString(R.string.parent_playing_end), Ui.MUTED, 15f) {
+                store.parentPlayingUntil = 0L
+                render()
+            }, topMarginDp = 8)
+        } else {
+            card.add(Ui.text(this, getString(R.string.parent_playing), 16f, bold = true))
+            card.add(Ui.text(this, getString(R.string.parent_playing_hint), 14f, Ui.MUTED), topMarginDp = 2)
+            val row = Ui.row(this)
+            for ((i, minutes) in listOf(15, 30, 60).withIndex()) {
+                row.addView(Ui.button(this, getString(R.string.minutes_short, minutes), Ui.ACCENT, 15f) {
+                    store.parentPlayingUntil = System.currentTimeMillis() + minutes * Store.MINUTE_MS
+                    store.pause()
+                    render()
+                }, weighted(leftMarginDp = if (i == 0) 0 else 6))
+            }
+            card.add(row, topMarginDp = 8)
+        }
+        return card
+    }
+
+    private fun kidsTab(root: LinearLayout) {
+        root.add(section(getString(R.string.section_today)), topMarginDp = 20)
+        root.add(todaySummary(), topMarginDp = 6)
 
         root.add(section(getString(R.string.section_children)), topMarginDp = 24)
         val active = store.activeKid()
@@ -147,8 +164,36 @@ class ParentActivity : Activity() {
             render()
         }
         root.add(group, topMarginDp = 4)
+    }
 
-        root.add(section(getString(R.string.section_games)), topMarginDp = 24)
+    /** One line per child: minutes played today and on which games (all family phones). */
+    private fun todaySummary(): LinearLayout {
+        val card = Ui.card(this)
+        val kids = store.kids()
+        if (kids.isEmpty()) card.add(Ui.text(this, getString(R.string.today_nothing), 15f, Ui.MUTED))
+        for ((i, kid) in kids.withIndex()) {
+            val used = store.usedMs(kid.id).coerceAtLeast(0)
+            val games = store.gamesToday(kid.id).take(4).joinToString(" · ") { (pkg, ms) ->
+                "${label(pkg)} ${(ms + 30_000) / 60_000}"
+            }
+            val line = Ui.row(this)
+            line.addView(Ui.avatar(this, kid.name, kid.color, 32))
+            line.addView(
+                Ui.text(
+                    this,
+                    getString(R.string.today_line, kid.name, Ui.formatMinutes(this, used)) +
+                        if (games.isNotEmpty()) "\n$games" else "",
+                    15f,
+                ).apply { setPadding(dp(12), 0, 0, 0) },
+                LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
+            )
+            card.add(line, topMarginDp = if (i == 0) 0 else 10)
+        }
+        return card
+    }
+
+    private fun gamesTab(root: LinearLayout) {
+        root.add(section(getString(R.string.section_games)), topMarginDp = 20)
         val detected = store.detectedGames(refresh = true)
         root.add(Switch(this).apply {
             text = getString(R.string.auto_games)
@@ -170,6 +215,65 @@ class ParentActivity : Activity() {
             topMarginDp = 8,
         )
         root.add(Ui.button(this, getString(R.string.choose_games)) { chooseGames() }, topMarginDp = 8)
+    }
+
+    private fun settingsTab(root: LinearLayout, guardOn: Boolean) {
+        root.add(section(getString(R.string.section_permissions)), topMarginDp = 20)
+        val usage = GuardService.hasUsageAccess(this)
+        val overlay = GuardService.canOverlay(this)
+        val notif = Build.VERSION.SDK_INT < 33 ||
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        val battery = getSystemService(PowerManager::class.java)!!.isIgnoringBatteryOptimizations(packageName)
+        val allSet = usage && overlay && notif && battery
+
+        if (allSet && !showPermissions) {
+            // Everything is on: one line, tap to see the details.
+            root.add(Ui.text(this, getString(R.string.all_set), 16f, bold = true).apply {
+                setOnClickListener {
+                    showPermissions = true
+                    render()
+                }
+            }, topMarginDp = 8)
+        } else {
+            root.add(
+                Ui.text(
+                    this,
+                    getString(if (guardOn) R.string.guard_on else R.string.guard_off),
+                    16f,
+                    if (guardOn) Ui.TEXT else Ui.DANGER,
+                    bold = true,
+                ),
+                topMarginDp = 8,
+            )
+            root.add(
+                permissionRow(getString(R.string.perm_usage), getString(R.string.perm_usage_hint), usage) {
+                    openSystem(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                },
+                topMarginDp = 10,
+            )
+            root.add(
+                permissionRow(getString(R.string.perm_overlay), getString(R.string.perm_overlay_hint), overlay) {
+                    openSystem(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
+                },
+                topMarginDp = 10,
+            )
+            root.add(
+                permissionRow(getString(R.string.perm_notif), getString(R.string.perm_notif_hint), notif) {
+                    openSystem(
+                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                    )
+                },
+                topMarginDp = 10,
+            )
+            root.add(
+                permissionRow(getString(R.string.perm_battery), getString(R.string.perm_battery_hint), battery) {
+                    openSystem(
+                        Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName"))
+                    )
+                },
+                topMarginDp = 10,
+            )
+        }
 
         root.add(section(getString(R.string.section_sync)), topMarginDp = 24)
         addSyncSection(root)
@@ -193,13 +297,6 @@ class ParentActivity : Activity() {
             keepOpen = true
             startActivity(Intent(this, PinActivity::class.java).putExtra(PinActivity.EXTRA_MODE, PinActivity.MODE_CHANGE))
         }, topMarginDp = 8)
-
-        root.add(Ui.button(this, getString(R.string.done), Ui.TEXT) { finish() }, topMarginDp = 32)
-
-        setContentView(ScrollView(this).apply {
-            setBackgroundColor(Ui.BG)
-            addView(root)
-        })
     }
 
     private fun permissionRow(title: String, hint: String, granted: Boolean, turnOn: () -> Unit): LinearLayout {
@@ -444,12 +541,18 @@ class ParentActivity : Activity() {
 
     private fun label(pkg: String): String = runCatching {
         packageManager.getApplicationLabel(packageManager.getApplicationInfo(pkg, 0)).toString()
-    }.getOrDefault(pkg)
+    }.getOrDefault(pkg.substringAfterLast('.')) // Not installed on this phone: short package name.
 
     /** Opens a system screen; the Settings lock is lifted for 5 minutes so the parent isn't blocked. */
     private fun openSystem(intent: Intent) {
         keepOpen = true
         store.unlockSettings()
         startActivity(intent)
+    }
+
+    companion object {
+        private const val TAB_KIDS = "kids"
+        private const val TAB_GAMES = "games"
+        private const val TAB_SETTINGS = "settings"
     }
 }
