@@ -172,12 +172,16 @@ class MainActivity : Activity() {
 
     private fun gamePicker(): LinearLayout {
         val box = Ui.column(this)
-        val games = store.games().mapNotNull { pkg ->
-            runCatching {
-                val info = packageManager.getApplicationInfo(pkg, 0)
-                Triple(pkg, packageManager.getApplicationLabel(info).toString(), packageManager.getApplicationIcon(info))
-            }.getOrNull()
-        }.sortedBy { it.second.lowercase() }
+        val games = store.sortByRecentUse(
+            store.games().mapNotNull { pkg ->
+                runCatching {
+                    val info = packageManager.getApplicationInfo(pkg, 0)
+                    Triple(pkg, packageManager.getApplicationLabel(info).toString(), packageManager.getApplicationIcon(info))
+                }.getOrNull()
+            },
+            { it.first },
+            { it.second },
+        )
 
         if (games.isEmpty()) {
             box.add(Ui.text(this, getString(R.string.no_games_ask_parent), 16f, Ui.MUTED, center = true))

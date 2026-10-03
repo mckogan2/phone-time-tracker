@@ -163,7 +163,8 @@ class ParentActivity : Activity() {
             Ui.text(this, getString(R.string.auto_games_hint), 14f, Ui.MUTED),
             topMarginDp = 4,
         )
-        val timed = store.games().map { (if (it in detected) "🤖 " else "🎮 ") + label(it) }.sortedBy { it.drop(3).lowercase() }
+        val timed = store.sortByRecentUse(store.games().map { it to label(it) }, { it.first }, { it.second })
+            .map { (pkg, name) -> (if (pkg in detected) "🤖 " else "🎮 ") + name }
         root.add(
             Ui.text(this, if (timed.isEmpty()) getString(R.string.no_games_timed) else timed.joinToString("\n"), 16f),
             topMarginDp = 8,
@@ -423,8 +424,8 @@ class ParentActivity : Activity() {
             .map { it to label(it) }
         val detected = store.detectedGames(refresh = true)
         val before = store.games()
-        // Games first, then everything else, each alphabetically.
-        val sorted = apps.sortedWith(compareBy({ it.first !in detected }, { it.second.lowercase() }))
+        // Games first, then everything else; within each, recently used first, then A–Z.
+        val sorted = store.sortByRecentUse(apps, { it.first }, { it.second }).sortedBy { it.first !in detected }
         val checked = sorted.map { it.first in before }.toBooleanArray()
         val names = sorted.map { (if (it.first in detected) "🤖 " else "") + it.second }.toTypedArray()
 

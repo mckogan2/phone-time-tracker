@@ -1,5 +1,6 @@
 package com.mckogan.playtime
 
+import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -266,6 +267,23 @@ class Store(context: Context) {
         return found
     }
 
+    /**
+     * Apps used in the last [RECENT_DAYS] days first (most recent on top), then the rest A–Z.
+     * Uses Android's own "last used" times (Usage access); without it the list is just A–Z.
+     */
+    fun <T> sortByRecentUse(items: List<T>, pkg: (T) -> String, label: (T) -> String): List<T> {
+        val lastUsed = lastUsedTimes()
+        return items.sortedWith(compareByDescending<T> { lastUsed[pkg(it)] ?: 0L }.thenBy { label(it).lowercase() })
+    }
+
+    private fun lastUsedTimes(): Map<String, Long> {
+        val usage = appContext.getSystemService(UsageStatsManager::class.java) ?: return emptyMap()
+        val now = System.currentTimeMillis()
+        val since = now - RECENT_DAYS * 24 * 60 * MINUTE_MS
+        val stats = runCatching { usage.queryAndAggregateUsageStats(since, now) }.getOrNull() ?: return emptyMap()
+        return stats.mapValues { it.value.lastTimeUsed }.filterValues { it >= since }
+    }
+
     // ---- Parent PIN ----
 
     fun hasPin(): Boolean = prefs.contains(KEY_PIN_HASH)
@@ -369,6 +387,7 @@ class Store(context: Context) {
         const val MINUTE_MS = 60_000L
         const val DEFAULT_MINUTES = 45
         const val SETTINGS_UNLOCK_MS = 5 * MINUTE_MS
+        private const val RECENT_DAYS = 14L
 
         const val LOCK_OFF = "off"
         const val LOCK_PICTURE = "picture"
