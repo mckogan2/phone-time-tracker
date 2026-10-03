@@ -210,7 +210,7 @@ class GuardService : Service() {
 
         // The parent's own apps: "who's using?" before, "want more?" after the chosen time.
         if (pkg in store.myApps()) {
-            if (store.myAppLeftMs(pkg) > 0) {
+            if (store.myAppLeftMs(pkg) > 0 || MyAppActivity.isShowing(pkg)) {
                 hideCover()
             } else {
                 block(
