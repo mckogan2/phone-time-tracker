@@ -68,6 +68,19 @@ jobs:
 
       # Friends' phones: copy the APK to the public releases-only repo, where the app's
       # "Update app" button downloads it. Skipped until the RELEASES_TOKEN secret exists.
+      # GitHub can't publish a release in an empty repository: add a README the first time.
+      - name: Make sure play-time-releases has a first file
+        if: env.RELEASES_TOKEN != '' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ccr-3cd5d074-7tlkgj')
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          if ! gh api repos/mckogan2/play-time-releases/contents/README.md > /dev/null 2>&1; then
+            printf '# Play Time releases\n\nNew versions of the Play Time app. In the app: Parents → Settings → Update app.\n' > releases-readme.md
+            gh api -X PUT repos/mckogan2/play-time-releases/contents/README.md \
+              -f message="Add README" \
+              -f content="$(base64 -w0 releases-readme.md)"
+          fi
+
       - name: Publish to play-time-releases
         if: env.RELEASES_TOKEN != '' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ccr-3cd5d074-7tlkgj')
         uses: softprops/action-gh-release@v2
