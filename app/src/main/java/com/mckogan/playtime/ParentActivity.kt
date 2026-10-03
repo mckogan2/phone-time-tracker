@@ -118,9 +118,23 @@ class ParentActivity : Activity() {
         root.add(Ui.button(this, "+ Add child", Ui.MUTED) { editKid(null) }, topMarginDp = 10)
 
         root.add(section("Games"), topMarginDp = 24)
-        val labels = store.games().map { label(it) }.sorted()
+        val detected = store.detectedGames(refresh = true)
+        root.add(Switch(this).apply {
+            text = "Automatically time all games"
+            textSize = 16f
+            isChecked = store.autoGames
+            setOnCheckedChangeListener { _, checked ->
+                store.autoGames = checked
+                render()
+            }
+        }, topMarginDp = 8)
         root.add(
-            Ui.text(this, if (labels.isEmpty()) "No games chosen yet." else labels.joinToString("\n") { "🎮 $it" }, 16f),
+            Ui.text(this, "🤖 = found automatically. Some games don't say they're games — add them with Choose games.", 14f, Ui.MUTED),
+            topMarginDp = 4,
+        )
+        val timed = store.games().map { (if (it in detected) "🤖 " else "🎮 ") + label(it) }.sortedBy { it.drop(3).lowercase() }
+        root.add(
+            Ui.text(this, if (timed.isEmpty()) "No games are timed yet." else timed.joinToString("\n"), 16f),
             topMarginDp = 8,
         )
         root.add(Ui.button(this, "Choose games") { chooseGames() }, topMarginDp = 8)
@@ -249,17 +263,20 @@ class ParentActivity : Activity() {
             .filter { it != packageName }
             .distinct()
             .map { it to label(it) }
-            .sortedBy { it.second.lowercase() }
-        val selected = store.games().toMutableSet()
-        val checked = apps.map { it.first in selected }.toBooleanArray()
+        val detected = store.detectedGames(refresh = true)
+        val before = store.games()
+        // Games first, then everything else, each alphabetically.
+        val sorted = apps.sortedWith(compareBy({ it.first !in detected }, { it.second.lowercase() }))
+        val checked = sorted.map { it.first in before }.toBooleanArray()
+        val names = sorted.map { (if (it.first in detected) "🤖 " else "") + it.second }.toTypedArray()
 
         AlertDialog.Builder(this)
-            .setTitle("Which apps are games?")
-            .setMultiChoiceItems(apps.map { it.second }.toTypedArray(), checked) { _, i, isChecked ->
-                if (isChecked) selected += apps[i].first else selected -= apps[i].first
-            }
+            .setTitle("Which apps should be timed?")
+            .setMultiChoiceItems(names, checked) { _, i, isChecked -> checked[i] = isChecked }
             .setPositiveButton("Save") { _, _ ->
-                store.setGames(selected)
+                sorted.forEachIndexed { i, (pkg, _) ->
+                    if (checked[i] != (pkg in before)) store.setGameChoice(pkg, checked[i])
+                }
                 render()
             }
             .setNegativeButton("Cancel", null)

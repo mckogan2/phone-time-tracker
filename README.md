@@ -3,7 +3,8 @@
 A small Android app that gives each child their own daily game-time budget on a shared phone.
 
 - **Each child has their own clock** (Or and Shahar start with 45 minutes a day).
-- **Time only counts while a chosen game is on screen** and that child has tapped their name.
+- **Time only counts while a game is on screen** and that child has tapped their name.
+- **Every game is timed automatically.** Apps that are marked as games (most games from the Play Store) are timed by default, including games installed later. Parents can untick a game or add apps that aren't marked as games.
 - **Pause and continue later.** Tap *Pause* (in the app or in the notification). The clock also stops on its own when the screen turns off or nobody has played a game for 5 minutes. The next time a game opens, the phone asks **"Who's playing?"**.
 - **Time's up.** At 0:00 the game is covered by a "Time's up!" screen. The other child can still pick their name and play.
 - **Warnings** at 5 minutes and 1 minute left.
@@ -31,7 +32,7 @@ Play Time deliberately does **not** use an Accessibility Service: phones (Samsun
    - **Battery: unrestricted**: allow, so the phone doesn't switch the guard off.
 
    When the first two are on, the screen shows **✅ Guard is on**.
-5. Tap **Choose games** and tick the games the kids play.
+5. Under **Games**, check the list: games marked 🤖 were found automatically. If a game is missing, tap **Choose games** and tick it.
 6. Switch on **Lock phone Settings with PIN**.
 
 ## Testing it at home

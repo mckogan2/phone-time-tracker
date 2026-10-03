@@ -1,7 +1,10 @@
 package com.mckogan.playtime
 
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.ApplicationInfo
+import android.os.SystemClock
 import org.json.JSONArray
 import org.json.JSONObject
 import java.security.MessageDigest
@@ -19,8 +22,9 @@ data class Kid(
 /** All app state, kept in SharedPreferences so it survives restarts. */
 class Store(context: Context) {
 
+    private val appContext: Context = context.applicationContext
     private val prefs: SharedPreferences =
-        context.applicationContext.getSharedPreferences("playtime", Context.MODE_PRIVATE)
+        appContext.getSharedPreferences("playtime", Context.MODE_PRIVATE)
 
     init {
         if (!prefs.contains(KEY_KIDS)) {
@@ -117,11 +121,52 @@ class Store(context: Context) {
     }
 
     // ---- Games ----
+    // Timed games = (apps marked as games, if auto is on) + apps the parent added - apps the parent removed.
 
-    fun games(): Set<String> = prefs.getStringSet(KEY_GAMES, emptySet())!!.toSet()
+    fun games(): Set<String> {
+        val auto = if (autoGames) detectedGames() else emptySet()
+        return auto - excludedGames() + addedGames()
+    }
 
-    fun setGames(packages: Set<String>) {
-        prefs.edit().putStringSet(KEY_GAMES, packages.toSet()).apply()
+    var autoGames: Boolean
+        get() = prefs.getBoolean(KEY_AUTO_GAMES, true)
+        set(value) = prefs.edit().putBoolean(KEY_AUTO_GAMES, value).apply()
+
+    private fun addedGames(): Set<String> = prefs.getStringSet(KEY_GAMES, emptySet())!!.toSet()
+
+    private fun excludedGames(): Set<String> = prefs.getStringSet(KEY_EXCLUDED_GAMES, emptySet())!!.toSet()
+
+    /** Records the parent's tick/untick for one app in the "Choose games" list. */
+    fun setGameChoice(pkg: String, timed: Boolean) {
+        val added = addedGames().toMutableSet()
+        val excluded = excludedGames().toMutableSet()
+        val autoTimed = autoGames && pkg in detectedGames()
+        added -= pkg
+        excluded -= pkg
+        if (timed && !autoTimed) added += pkg
+        if (!timed && autoTimed) excluded += pkg
+        prefs.edit().putStringSet(KEY_GAMES, added).putStringSet(KEY_EXCLUDED_GAMES, excluded).apply()
+    }
+
+    /** True if the app's developer marked it as a game. */
+    @Suppress("DEPRECATION") // FLAG_IS_GAME is the older way some games still use.
+    fun isMarkedGame(pkg: String): Boolean {
+        val info = runCatching { appContext.packageManager.getApplicationInfo(pkg, 0) }.getOrNull() ?: return false
+        return info.category == ApplicationInfo.CATEGORY_GAME || info.flags and ApplicationInfo.FLAG_IS_GAME != 0
+    }
+
+    /** Installed apps marked as games. Cached for a minute because the guard asks every second. */
+    fun detectedGames(refresh: Boolean = false): Set<String> {
+        val now = SystemClock.elapsedRealtime()
+        if (!refresh) detectedCache?.let { if (now - detectedAt < DETECT_CACHE_MS) return it }
+        val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        val found = appContext.packageManager.queryIntentActivities(launcher, 0)
+            .map { it.activityInfo.packageName }
+            .filter { it != appContext.packageName && isMarkedGame(it) }
+            .toSet()
+        detectedCache = found
+        detectedAt = now
+        return found
     }
 
     // ---- Parent PIN ----
@@ -186,6 +231,12 @@ class Store(context: Context) {
         private const val KEY_ACTIVE = "active_kid"
         private const val KEY_ACTIVE_SINCE = "active_since"
         private const val KEY_GAMES = "games"
+        private const val KEY_EXCLUDED_GAMES = "excluded_games"
+        private const val KEY_AUTO_GAMES = "auto_games"
+        private const val DETECT_CACHE_MS = 60_000L
+
+        @Volatile private var detectedCache: Set<String>? = null
+        @Volatile private var detectedAt = 0L
         private const val KEY_PIN_HASH = "pin_hash"
         private const val KEY_PIN_SALT = "pin_salt"
         private const val KEY_PIN_FAILURES = "pin_failures"
