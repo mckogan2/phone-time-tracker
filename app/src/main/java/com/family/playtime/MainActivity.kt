@@ -1,0 +1,196 @@
+package com.family.playtime
+
+import android.Manifest
+import android.app.Activity
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import android.os.Bundle
+import android.view.Gravity
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import com.family.playtime.Ui.add
+import com.family.playtime.Ui.dp
+
+/**
+ * The kids' screen. Also shown on top of a game when nobody has picked their name yet
+ * ("Who's playing?") or when the playing kid's time has run out ("Time's up").
+ */
+class MainActivity : Activity() {
+
+    private lateinit var store: Store
+    private var reason: String? = null
+    private var blockedGame: String? = null
+    private var blockedKidId: String? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        store = Store(this)
+        handleIntent(intent)
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0)
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        render()
+    }
+
+    private fun handleIntent(intent: Intent) {
+        if (intent.action == ACTION_PAUSE) {
+            store.pause()
+            reason = null
+            blockedGame = null
+        } else {
+            reason = intent.getStringExtra(EXTRA_REASON)
+            blockedGame = intent.getStringExtra(EXTRA_GAME)
+            blockedKidId = intent.getStringExtra(EXTRA_KID)
+        }
+    }
+
+    @Deprecated("Activity.onBackPressed is fine for a no-AndroidX app")
+    override fun onBackPressed() {
+        // Never "back" into a game that was just blocked.
+        if (reason != null) goHome() else super.onBackPressed()
+    }
+
+    private fun render() {
+        val root = Ui.column(this, 20)
+        val active = store.activeKid()
+
+        val (title, subtitle) = when (reason) {
+            REASON_WHO -> "Who's playing? 🎮" to "Tap your name to use your game time"
+            REASON_TIME_UP -> {
+                val name = store.kid(blockedKidId)?.name
+                "Time's up${name?.let { ", $it" } ?: ""}! ⏰" to "Your time comes back tomorrow"
+            }
+            else -> "Play Time 🎮" to (active?.let { "${it.name} is playing" } ?: "Tap your name to play")
+        }
+        root.add(Ui.text(this, title, 30f, bold = true, center = true))
+        root.add(Ui.text(this, subtitle, 16f, Ui.MUTED, center = true), topMarginDp = 4)
+
+        if (!GuardService.isEnabled(this)) {
+            val banner = Ui.card(this, 0xFFFFE3D6.toInt())
+            banner.add(Ui.text(this, "Setup needed: a parent must turn on the Play Time guard.", 15f))
+            root.add(banner, topMarginDp = 16)
+        }
+
+        for (kid in store.kids()) root.add(kidCard(kid, active), topMarginDp = 16)
+
+        if (active != null && blockedGame == null) root.add(gamePicker(), topMarginDp = 20)
+
+        val parents = Ui.text(this, "🔒 Parents", 16f, Ui.MUTED, center = true).apply {
+            val p = dp(16)
+            setPadding(p, p, p, p)
+            setOnClickListener {
+                startActivity(
+                    Intent(this@MainActivity, PinActivity::class.java)
+                        .putExtra(PinActivity.EXTRA_MODE, PinActivity.MODE_PARENT)
+                )
+            }
+        }
+        root.add(parents, topMarginDp = 24)
+
+        setContentView(ScrollView(this).apply {
+            setBackgroundColor(Ui.BG)
+            addView(root)
+        })
+    }
+
+    private fun kidCard(kid: Kid, active: Kid?): LinearLayout {
+        val remaining = store.remainingMs(kid)
+        val total = kid.dailyMinutes * Store.MINUTE_MS
+        val card = Ui.card(this)
+
+        card.add(Ui.text(this, kid.name, 28f, kid.color, bold = true))
+        card.add(Ui.text(this, "${Ui.formatClock(remaining)} left", 40f, bold = true), topMarginDp = 4)
+        card.add(Ui.progress(this, if (total > 0) remaining.toFloat() / total else 0f, kid.color), topMarginDp = 12)
+
+        val button = when {
+            active?.id == kid.id -> Ui.button(this, "⏸ Pause", Ui.MUTED) {
+                store.pause()
+                render()
+            }
+            remaining > 0 -> Ui.button(this, "▶ Play", kid.color) { play(kid) }
+            else -> Ui.button(this, "Done for today ✔", Ui.TRACK) {}.apply {
+                setTextColor(Ui.MUTED)
+                isEnabled = false
+            }
+        }
+        card.add(button, topMarginDp = 16)
+        return card
+    }
+
+    private fun play(kid: Kid) {
+        store.setActive(kid.id)
+        val game = blockedGame
+        reason = null
+        blockedGame = null
+        if (game != null && launch(game)) return
+        render()
+    }
+
+    private fun gamePicker(): LinearLayout {
+        val box = Ui.column(this)
+        val games = store.games().mapNotNull { pkg ->
+            runCatching {
+                val info = packageManager.getApplicationInfo(pkg, 0)
+                Triple(pkg, packageManager.getApplicationLabel(info).toString(), packageManager.getApplicationIcon(info))
+            }.getOrNull()
+        }.sortedBy { it.second.lowercase() }
+
+        if (games.isEmpty()) {
+            box.add(Ui.text(this, "No games chosen yet — ask a parent.", 16f, Ui.MUTED, center = true))
+            return box
+        }
+        box.add(Ui.text(this, "Pick a game", 20f, bold = true))
+        for ((pkg, label, icon) in games) {
+            val tile = Ui.row(this).apply {
+                background = Ui.rounded(Ui.CARD, 16, this@MainActivity)
+                val p = dp(12)
+                setPadding(p, p, p, p)
+                setOnClickListener { launch(pkg) }
+            }
+            tile.addView(ImageView(this).apply { setImageDrawable(icon) }, LinearLayout.LayoutParams(dp(48), dp(48)))
+            tile.addView(Ui.text(this, label, 20f).apply {
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(16), 0, 0, 0)
+            })
+            box.add(tile, topMarginDp = 10)
+        }
+        return box
+    }
+
+    private fun launch(pkg: String): Boolean {
+        val intent = packageManager.getLaunchIntentForPackage(pkg) ?: return false
+        startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        return true
+    }
+
+    private fun goHome() {
+        startActivity(
+            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+        reason = null
+        blockedGame = null
+    }
+
+    companion object {
+        const val ACTION_PAUSE = "com.family.playtime.PAUSE"
+        const val EXTRA_REASON = "reason"
+        const val EXTRA_GAME = "game"
+        const val EXTRA_KID = "kid"
+        const val REASON_WHO = "who"
+        const val REASON_TIME_UP = "time_up"
+    }
+}
