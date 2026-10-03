@@ -96,6 +96,9 @@ class GuardService : Service() {
         notifications.createNotificationChannel(
             NotificationChannel(CHANNEL_ID, getString(R.string.channel_name), NotificationManager.IMPORTANCE_LOW)
         )
+        notifications.createNotificationChannel(
+            NotificationChannel(MY_APPS_CHANNEL_ID, getString(R.string.my_apps_channel), NotificationManager.IMPORTANCE_LOW)
+        )
         val notification = buildNotification()
         if (Build.VERSION.SDK_INT >= 34) {
             startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
@@ -165,6 +168,7 @@ class GuardService : Service() {
         val activeKid = if (parentPlaying) null else store.activeKid()
         updateBubble(activeKid, activeKid != null && inGame && cover == null && power.isInteractive)
         updateNotification()
+        updateMyAppNotifications()
         Sync.tick(this)
     }
 
@@ -475,6 +479,62 @@ class GuardService : Service() {
 
     private val myAppSeen = mutableMapOf<String, Long>()
 
+    /** What each "My app" notification shows now, so it's re-posted only when that changes. */
+    private val myAppShown = mutableMapOf<String, String>()
+
+    /**
+     * One notification per "My app" with time left: a live countdown while the app is on
+     * screen, "paused" otherwise (time only counts while it's open). Gone when the session ends.
+     */
+    private fun updateMyAppNotifications() {
+        val apps = store.myApps().sorted()
+        for ((index, pkg) in apps.withIndex()) {
+            val id = MY_APP_NOTIFICATION_BASE + index
+            val left = store.myAppLeftMs(pkg)
+            if (!store.myAppStarted(pkg) || left <= 0) {
+                if (myAppShown.remove(pkg) != null) notifications.cancel(id)
+                continue
+            }
+            val live = foregroundPkg == pkg && power.isInteractive
+            // Live: state only. Paused: also the minutes shown.
+            val state = if (live) "live" else "paused:" + Ui.formatMinutes(this, left)
+            if (myAppShown[pkg] == state) continue
+            myAppShown[pkg] = state
+            runCatching { notifications.notify(id, buildMyAppNotification(pkg, index, left, live)) }
+        }
+        // Apps removed from the list.
+        for (pkg in myAppShown.keys.filter { it !in apps }) myAppShown.remove(pkg)
+    }
+
+    private fun buildMyAppNotification(pkg: String, index: Int, left: Long, live: Boolean): Notification {
+        val name = appLabel(pkg)
+        val open = packageManager.getLaunchIntentForPackage(pkg)?.let {
+            PendingIntent.getActivity(this, 100 + index, it, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        }
+        val end = PendingIntent.getBroadcast(
+            this, 200 + index,
+            Intent(this, MyAppEndReceiver::class.java).putExtra(MyAppActivity.EXTRA_APP, pkg),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val builder = Notification.Builder(this, MY_APPS_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_launcher)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setShowWhen(live)
+            .addAction(Notification.Action.Builder(null, getString(R.string.myapp_end_now), end).build())
+        open?.let { builder.setContentIntent(it) }
+        if (live) {
+            builder.setContentTitle(getString(R.string.myapp_notif_left, name))
+                .setUsesChronometer(true)
+                .setChronometerCountDown(true)
+                .setWhen(System.currentTimeMillis() + left)
+        } else {
+            builder.setContentTitle(name)
+                .setContentText(getString(R.string.myapp_notif_paused, Ui.formatMinutes(this, left)))
+        }
+        return builder.build()
+    }
+
     private fun appLabel(pkg: String): String = runCatching {
         packageManager.getApplicationLabel(packageManager.getApplicationInfo(pkg, 0)).toString()
     }.getOrDefault(pkg)
@@ -493,6 +553,8 @@ class GuardService : Service() {
         private val WARN_AT_MINUTES = intArrayOf(5, 1)
         private const val CHANNEL_ID = "game_time"
         private const val NOTIFICATION_ID = 1
+        private const val MY_APPS_CHANNEL_ID = "my_apps"
+        private const val MY_APP_NOTIFICATION_BASE = 1000
 
         /** The running guard, if any (used to drop the cover once Play Time is open). */
         var instance: GuardService? = null

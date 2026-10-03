@@ -81,6 +81,10 @@
         </service>
 
         <receiver
+            android:name=".MyAppEndReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".BootReceiver"
             android:exported="true">
             <intent-filter>

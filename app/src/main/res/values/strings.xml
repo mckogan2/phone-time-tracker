@@ -168,4 +168,8 @@
     <string name="myapp_time_up">Your time is up. Want more?</string>
     <string name="myapp_more">Yes, more</string>
     <string name="myapp_breathe">Take a breath… or close it 🙂</string>
+    <string name="my_apps_channel">My apps timer</string>
+    <string name="myapp_notif_left">%1$s — time left</string>
+    <string name="myapp_notif_paused">⏸ %1$s left (paused)</string>
+    <string name="myapp_end_now">End now</string>
 </resources>

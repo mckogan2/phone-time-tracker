@@ -172,4 +172,8 @@
     <string name="myapp_time_up">הזמן נגמר. רוצה עוד?</string>
     <string name="myapp_more">כן, עוד</string>
     <string name="myapp_breathe">לנשום רגע… או לסגור 🙂</string>
+    <string name="my_apps_channel">טיימר האפליקציות שלי</string>
+    <string name="myapp_notif_left">%1$s — זמן שנשאר</string>
+    <string name="myapp_notif_paused">⏸ נשארו %1$s (בהשהיה)</string>
+    <string name="myapp_end_now">סיום עכשיו</string>
 </resources>
