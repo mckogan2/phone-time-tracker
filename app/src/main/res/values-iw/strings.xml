@@ -144,4 +144,8 @@
     <string name="today_nothing">עדיין אין ילדים.</string>
     <string name="today_line">%1$s — %2$s</string>
     <string name="all_set">✅ הכול מוכן — לחצו כדי לראות הרשאות</string>
+    <string name="section_update">עדכון</string>
+    <string name="version_label">גרסה %1$s</string>
+    <string name="update_app">🔄 עדכון האפליקציה</string>
+    <string name="update_hint">מוריד את הגרסה החדשה. כשההורדה מסתיימת לחצו עליה ובחרו \"התקנה\". ההגדרות נשמרות.</string>
 </resources>

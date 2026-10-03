@@ -78,6 +78,17 @@ Play Time deliberately does **not** use an Accessibility Service: phones (Samsun
 - [ ] Restart the phone → the "Play Time is on" notification comes back.
 - [ ] Next day, both clocks are back to 45:00.
 
+## Updates
+
+Parents → Settings → **🔄 Update app** downloads the newest `PlayTime.apk` in the browser; tap it and choose **Install**. Settings, children and family stay.
+
+How it works: every build is also published (as `v1.0.<build number>`) to the public, code-free repo [`mckogan2/play-time-releases`](https://github.com/mckogan2/play-time-releases), because this code repo is private. One-time setup for the owner:
+1. Create the public repo `play-time-releases` (with a README).
+2. Create a fine-grained token: only that repo, **Contents: Read and write**, 1-year expiry.
+3. Save it here as the Actions secret `RELEASES_TOKEN`. Until then the publish step is skipped.
+
+**עדכון:** הורים ← הגדרות ← **🔄 עדכון האפליקציה** ← לוחצים על הקובץ שירד ← "התקנה". ההגדרות נשמרות.
+
 ## Family sync
 
 **For a family:** on the first phone, Parents → **Family sync** → **Create family**. A 6-letter code appears (valid 24 hours). On the other phone: Parents → **Join family** → type the code. The second phone takes the family's children and settings. Time used on either phone counts for both. Works offline and catches up when back online. **Leave family** turns sharing off again (the phone keeps a copy of the children).

@@ -140,4 +140,8 @@
     <string name="today_nothing">No children yet.</string>
     <string name="today_line">%1$s — %2$s</string>
     <string name="all_set">✅ All set — tap to see permissions</string>
+    <string name="section_update">Update</string>
+    <string name="version_label">Version %1$s</string>
+    <string name="update_app">🔄 Update app</string>
+    <string name="update_hint">Downloads the newest version. Tap it when it\'s done and choose Install. Your settings stay.</string>
 </resources>

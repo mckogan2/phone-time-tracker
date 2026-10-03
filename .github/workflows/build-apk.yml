@@ -10,6 +10,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # Empty until the parent adds the secret; the releases-repo step checks it.
+      RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN }}
     steps:
       - uses: actions/checkout@v5
 
@@ -61,4 +64,17 @@ jobs:
           make_latest: true
           target_commitish: ${{ github.sha }}
           body: "Built from ${{ github.ref_name }} @ ${{ github.sha }}"
+          files: PlayTime.apk
+
+      # Friends' phones: copy the APK to the public releases-only repo, where the app's
+      # "Update app" button downloads it. Skipped until the RELEASES_TOKEN secret exists.
+      - name: Publish to play-time-releases
+        if: env.RELEASES_TOKEN != '' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ccr-3cd5d074-7tlkgj')
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: mckogan2/play-time-releases
+          token: ${{ secrets.RELEASES_TOKEN }}
+          tag_name: v1.0.${{ github.run_number }}
+          name: Play Time 1.0.${{ github.run_number }}
+          make_latest: true
           files: PlayTime.apk

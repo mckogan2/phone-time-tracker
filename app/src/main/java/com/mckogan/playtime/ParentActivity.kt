@@ -297,6 +297,15 @@ class ParentActivity : Activity() {
             keepOpen = true
             startActivity(Intent(this, PinActivity::class.java).putExtra(PinActivity.EXTRA_MODE, PinActivity.MODE_CHANGE))
         }, topMarginDp = 8)
+
+        // Update: downloads the newest PlayTime.apk in the browser; tapping it installs over this version.
+        root.add(section(getString(R.string.section_update)), topMarginDp = 24)
+        val version = packageManager.getPackageInfo(packageName, 0).versionName ?: "?"
+        root.add(Ui.text(this, getString(R.string.version_label, version), 15f, Ui.MUTED), topMarginDp = 4)
+        root.add(Ui.button(this, getString(R.string.update_app)) {
+            openSystem(Intent(Intent.ACTION_VIEW, Uri.parse(UPDATE_URL)))
+        }, topMarginDp = 8)
+        root.add(Ui.text(this, getString(R.string.update_hint), 14f, Ui.MUTED), topMarginDp = 4)
     }
 
     private fun permissionRow(title: String, hint: String, granted: Boolean, turnOn: () -> Unit): LinearLayout {
@@ -554,5 +563,9 @@ class ParentActivity : Activity() {
         private const val TAB_KIDS = "kids"
         private const val TAB_GAMES = "games"
         private const val TAB_SETTINGS = "settings"
+
+        /** The newest APK, published by CI to the public releases-only repository. */
+        private const val UPDATE_URL =
+            "https://github.com/mckogan2/play-time-releases/releases/latest/download/PlayTime.apk"
     }
 }
