@@ -22,6 +22,8 @@ data class Kid(
     val secretPicture: String? = null,
     /** "salt:hash" of the kid's secret number, or null. */
     val secretNumber: String? = null,
+    /** Small square JPEG of the kid's face, Base64, or null (shows the first letter instead). */
+    val photo: String? = null,
 )
 
 /** All app state, kept in SharedPreferences so it survives restarts. */
@@ -56,6 +58,7 @@ class Store(context: Context) {
                 o.getInt("color"),
                 o.optString("picture").ifEmpty { null },
                 o.optString("number").ifEmpty { null },
+                o.optString("photo").ifEmpty { null },
             )
         }
     }
@@ -73,6 +76,7 @@ class Store(context: Context) {
                     .put("color", it.color)
                     .put("picture", it.secretPicture ?: "")
                     .put("number", it.secretNumber ?: "")
+                    .put("photo", it.photo ?: "")
             )
         }
         prefs.edit().putString(KEY_KIDS, arr.toString()).apply()
@@ -95,6 +99,50 @@ class Store(context: Context) {
         if (activeKidId() == id) pause()
         saveKids(kids().filterNot { it.id == id })
         prefs.edit().remove(usedKey(id)).remove(dayKey(id)).remove(sharedKey(id)).apply()
+    }
+
+    fun setPhoto(kidId: String, photo: String?) {
+        saveKids(kids().map { if (it.id == kidId) it.copy(photo = photo) else it })
+    }
+
+    // ---- Allowed game hours (shared by the family) ----
+
+    var hoursEnabled: Boolean
+        get() = prefs.getBoolean(KEY_HOURS_ON, false)
+        set(value) {
+            prefs.edit().putBoolean(KEY_HOURS_ON, value).apply()
+            sharedChanged()
+        }
+
+    /** Minutes after midnight when games open, e.g. 600 = 10:00. */
+    var hoursFrom: Int
+        get() = prefs.getInt(KEY_HOURS_FROM, DEFAULT_HOURS_FROM)
+        set(value) {
+            prefs.edit().putInt(KEY_HOURS_FROM, value).apply()
+            sharedChanged()
+        }
+
+    /** Minutes after midnight when games close, e.g. 1170 = 19:30. */
+    var hoursTo: Int
+        get() = prefs.getInt(KEY_HOURS_TO, DEFAULT_HOURS_TO)
+        set(value) {
+            prefs.edit().putInt(KEY_HOURS_TO, value).apply()
+            sharedChanged()
+        }
+
+    /** False outside the allowed hours (if the parent turned them on). */
+    fun gamesAllowedNow(): Boolean {
+        if (!hoursEnabled) return true
+        val now = java.time.LocalTime.now().let { it.hour * 60 + it.minute }
+        val from = hoursFrom
+        val to = hoursTo
+        return if (from <= to) now in from until to else now >= from || now < to
+    }
+
+    /** True if it's before today's opening time (otherwise games are closed for the night). */
+    fun beforeOpening(): Boolean {
+        val now = java.time.LocalTime.now().let { it.hour * 60 + it.minute }
+        return hoursFrom <= hoursTo && now < hoursFrom
     }
 
     // ---- "Who's playing" protection ----
@@ -397,6 +445,9 @@ class Store(context: Context) {
         "pinHash" to prefs.getString(KEY_PIN_HASH, null),
         "pinSalt" to prefs.getString(KEY_PIN_SALT, null),
         "protectSettings" to protectSettings,
+        "hoursEnabled" to hoursEnabled,
+        "hoursFrom" to hoursFrom,
+        "hoursTo" to hoursTo,
         "updatedAt" to settingsUpdatedAt,
     )
 
@@ -412,6 +463,9 @@ class Store(context: Context) {
         val pinSalt = data["pinSalt"] as? String
         if (pinHash != null && pinSalt != null) e.putString(KEY_PIN_HASH, pinHash).putString(KEY_PIN_SALT, pinSalt)
         (data["protectSettings"] as? Boolean)?.let { e.putBoolean(KEY_PROTECT_SETTINGS, it) }
+        (data["hoursEnabled"] as? Boolean)?.let { e.putBoolean(KEY_HOURS_ON, it) }
+        (data["hoursFrom"] as? Number)?.let { e.putInt(KEY_HOURS_FROM, it.toInt()) }
+        (data["hoursTo"] as? Number)?.let { e.putInt(KEY_HOURS_TO, it.toInt()) }
         (data["updatedAt"] as? Number)?.let { e.putLong(KEY_SETTINGS_UPDATED, it.toLong()) }
         e.apply()
     }
@@ -467,6 +521,11 @@ class Store(context: Context) {
         private const val KEY_ACTIVE_SINCE = "active_since"
         private const val KEY_GAMES = "games"
         private const val KEY_ONBOARDED = "onboarded"
+        private const val KEY_HOURS_ON = "hours_on"
+        private const val KEY_HOURS_FROM = "hours_from"
+        private const val KEY_HOURS_TO = "hours_to"
+        const val DEFAULT_HOURS_FROM = 10 * 60
+        const val DEFAULT_HOURS_TO = 19 * 60 + 30
         private const val KEY_MY_GAMES = "my_games"
         private const val KEY_OTHER_GAMES = "other_games"
         private const val KEY_PARENT_UNTIL = "parent_until"

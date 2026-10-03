@@ -10,6 +10,7 @@ import android.view.Gravity
 import android.view.View
 import android.widget.Button
 import android.widget.GridLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -145,6 +146,28 @@ object Ui {
     fun formatClock(ms: Long): String {
         val totalSec = (ms.coerceAtLeast(0L) + 999) / 1000
         return "%d:%02d".format(totalSec / 60, totalSec % 60)
+    }
+
+    /** Round avatar: the kid's photo if there is one, otherwise their first letter on [color]. */
+    fun kidAvatar(context: Context, kid: Kid, color: Int, sizeDp: Int): View {
+        val bitmap = kid.photo?.let { Photos.bitmap(it) } ?: return avatar(context, kid.name, color, sizeDp)
+        val size = context.dp(sizeDp)
+        return ImageView(context).apply {
+            setImageBitmap(bitmap)
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(color)
+            }
+            clipToOutline = true
+            layoutParams = LinearLayout.LayoutParams(size, size)
+        }
+    }
+
+    /** "10:00" style clock time for minutes after midnight, in the phone's 12/24-hour style. */
+    fun formatTimeOfDay(context: Context, minutes: Int): String {
+        val today = java.time.LocalDate.now().atTime(minutes / 60, minutes % 60)
+        return formatTime(context, today.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
     }
 
     /** A filled circle in [color] with the first letter of [name]. */

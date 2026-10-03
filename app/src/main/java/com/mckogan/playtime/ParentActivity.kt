@@ -3,12 +3,14 @@ package com.mckogan.playtime
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.TimePickerDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
+import android.provider.MediaStore
 import android.provider.Settings
 import android.text.InputFilter
 import android.text.InputType
@@ -177,7 +179,7 @@ class ParentActivity : Activity() {
                 "${label(pkg)} ${(ms + 30_000) / 60_000}"
             }
             val line = Ui.row(this)
-            line.addView(Ui.avatar(this, kid.name, kid.color, 32))
+            line.addView(Ui.kidAvatar(this, kid, kid.color, 32))
             line.addView(
                 Ui.text(
                     this,
@@ -215,6 +217,29 @@ class ParentActivity : Activity() {
             topMarginDp = 8,
         )
         root.add(Ui.button(this, getString(R.string.choose_games)) { chooseGames() }, topMarginDp = 8)
+
+        // Allowed hours: games are blocked outside them, even with time left.
+        root.add(section(getString(R.string.section_hours)), topMarginDp = 24)
+        root.add(Switch(this).apply {
+            text = getString(R.string.hours_switch)
+            textSize = 16f
+            isChecked = store.hoursEnabled
+            setOnCheckedChangeListener { _, checked ->
+                store.hoursEnabled = checked
+                render()
+            }
+        }, topMarginDp = 8)
+        if (store.hoursEnabled) {
+            val times = Ui.row(this)
+            times.addView(Ui.button(this, getString(R.string.hours_from, Ui.formatTimeOfDay(this, store.hoursFrom)), Ui.MUTED, 15f) {
+                pickTime(store.hoursFrom) { store.hoursFrom = it }
+            }, weighted())
+            times.addView(Ui.button(this, getString(R.string.hours_to, Ui.formatTimeOfDay(this, store.hoursTo)), Ui.MUTED, 15f) {
+                pickTime(store.hoursTo) { store.hoursTo = it }
+            }, weighted(leftMarginDp = 8))
+            root.add(times, topMarginDp = 8)
+        }
+        root.add(Ui.text(this, getString(R.string.hours_hint), 14f, Ui.MUTED), topMarginDp = 4)
     }
 
     private fun settingsTab(root: LinearLayout, guardOn: Boolean) {
@@ -393,12 +418,76 @@ class ParentActivity : Activity() {
 
     private fun toast(text: Int) = Toast.makeText(this, text, Toast.LENGTH_LONG).show()
 
+    private fun pickTime(minutes: Int, onPicked: (Int) -> Unit) {
+        TimePickerDialog(this, { _, hour, minute ->
+            onPicked(hour * 60 + minute)
+            render()
+        }, minutes / 60, minutes % 60, android.text.format.DateFormat.is24HourFormat(this)).show()
+    }
+
+    // ---- Kid photo ----
+
+    private var photoKidId: String? = null
+
+    private fun choosePhoto(kid: Kid) {
+        if (kid.photo != null) {
+            AlertDialog.Builder(this)
+                .setTitle(kid.name)
+                .setItems(arrayOf(getString(R.string.photo_change), getString(R.string.photo_remove))) { _, which ->
+                    if (which == 0) openPhotoPicker(kid) else {
+                        store.setPhoto(kid.id, null)
+                        render()
+                    }
+                }
+                .show()
+        } else {
+            openPhotoPicker(kid)
+        }
+    }
+
+    private fun openPhotoPicker(kid: Kid) {
+        photoKidId = kid.id
+        keepOpen = true
+        // Android 13+ has a photo picker that needs no permission; older phones use the gallery.
+        val intent = if (Build.VERSION.SDK_INT >= 33) {
+            Intent(MediaStore.ACTION_PICK_IMAGES)
+        } else {
+            Intent(Intent.ACTION_GET_CONTENT).setType("image/*").addCategory(Intent.CATEGORY_OPENABLE)
+        }
+        runCatching { startActivityForResult(intent, REQUEST_PHOTO) }.onFailure { keepOpen = false }
+    }
+
+    @Deprecated("Activity.onActivityResult is fine for a no-AndroidX app")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQUEST_PHOTO) return
+        val kidId = photoKidId ?: return
+        val uri = data?.data
+        if (resultCode != RESULT_OK || uri == null) return
+        val photo = Photos.fromUri(this, uri)
+        if (photo == null) {
+            toast(R.string.photo_failed)
+        } else {
+            store.setPhoto(kidId, photo)
+        }
+    }
+
     private fun section(title: String) = Ui.text(this, title, 20f, Ui.ACCENT, bold = true)
 
     private fun kidCard(kid: Kid, playing: Boolean): LinearLayout {
         val card = Ui.card(this)
         val remaining = store.remainingMs(kid)
-        card.add(Ui.text(this, kid.name + if (playing) "  " + getString(R.string.playing_badge) else "", 22f, kid.color, bold = true))
+        val header = Ui.row(this)
+        header.addView(Ui.kidAvatar(this, kid, kid.color, 48).apply { setOnClickListener { choosePhoto(kid) } })
+        header.addView(
+            Ui.text(this, kid.name + if (playing) "  " + getString(R.string.playing_badge) else "", 22f, kid.color, bold = true)
+                .apply { setPadding(dp(12), 0, dp(12), 0) },
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
+        )
+        header.addView(Ui.text(this, getString(R.string.photo_button), 15f, Ui.ACCENT, bold = true).apply {
+            setOnClickListener { choosePhoto(kid) }
+        })
+        card.add(header)
         if (store.missingSecret(kid)) {
             card.add(Ui.text(this, getString(R.string.no_secret_set), 14f, Ui.DANGER), topMarginDp = 2)
         }
@@ -563,6 +652,7 @@ class ParentActivity : Activity() {
         private const val TAB_KIDS = "kids"
         private const val TAB_GAMES = "games"
         private const val TAB_SETTINGS = "settings"
+        private const val REQUEST_PHOTO = 7
 
         /** The newest APK, published by CI to the public releases-only repository. */
         private const val UPDATE_URL =

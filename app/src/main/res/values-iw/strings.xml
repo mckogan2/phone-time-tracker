@@ -148,4 +148,16 @@
     <string name="version_label">גרסה %1$s</string>
     <string name="update_app">🔄 עדכון האפליקציה</string>
     <string name="update_hint">מוריד את הגרסה החדשה. כשההורדה מסתיימת לחצו עליה ובחרו \"התקנה\". ההגדרות נשמרות.</string>
+    <string name="photo_button">📷 תמונה</string>
+    <string name="photo_change">בחירת תמונה אחרת</string>
+    <string name="photo_remove">הסרת התמונה</string>
+    <string name="photo_failed">לא הצלחנו לקרוא את התמונה. נסו תמונה אחרת.</string>
+    <string name="section_hours">שעות משחק</string>
+    <string name="hours_switch">משחקים רק בשעות קבועות</string>
+    <string name="hours_from">מ-%1$s</string>
+    <string name="hours_to">עד %1$s</string>
+    <string name="hours_hint">מחוץ לשעות האלה המשחקים חסומים, גם אם נשאר לילד זמן. חל על כל הטלפונים במשפחה.</string>
+    <string name="hours_closed_morning">המשחקים מתחילים ב-%1$s ☀️</string>
+    <string name="hours_closed_night">נגמרו המשחקים להיום 🌙 נתראה מחר ב-%1$s</string>
+    <string name="hours_subtitle">הזמן שלך נשמר להמשך</string>
 </resources>

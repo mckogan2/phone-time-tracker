@@ -144,4 +144,16 @@
     <string name="version_label">Version %1$s</string>
     <string name="update_app">🔄 Update app</string>
     <string name="update_hint">Downloads the newest version. Tap it when it\'s done and choose Install. Your settings stay.</string>
+    <string name="photo_button">📷 Photo</string>
+    <string name="photo_change">Choose another photo</string>
+    <string name="photo_remove">Remove photo</string>
+    <string name="photo_failed">Couldn\'t read that photo. Try another one.</string>
+    <string name="section_hours">Allowed hours</string>
+    <string name="hours_switch">Games only at set hours</string>
+    <string name="hours_from">From %1$s</string>
+    <string name="hours_to">Until %1$s</string>
+    <string name="hours_hint">Outside these hours games are blocked, even if a child has time left. Applies to all family phones.</string>
+    <string name="hours_closed_morning">Games start at %1$s ☀️</string>
+    <string name="hours_closed_night">No more games today 🌙 See you tomorrow at %1$s</string>
+    <string name="hours_subtitle">Your time is saved for later</string>
 </resources>

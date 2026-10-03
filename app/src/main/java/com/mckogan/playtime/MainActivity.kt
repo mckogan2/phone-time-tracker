@@ -10,6 +10,7 @@ import android.view.Gravity
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.Toast
 import com.mckogan.playtime.Ui.add
 import com.mckogan.playtime.Ui.dp
 
@@ -83,6 +84,7 @@ class MainActivity : Activity() {
 
         val (title, subtitle) = when (reason) {
             REASON_WHO -> getString(R.string.who_title) to getString(R.string.who_subtitle)
+            REASON_HOURS -> GuardService.hoursClosedText(this, store) to getString(R.string.hours_subtitle)
             REASON_TIME_UP -> {
                 val name = store.kid(blockedKidId)?.name
                 (name?.let { getString(R.string.time_up_name, it) } ?: getString(R.string.time_up_title)) to
@@ -97,6 +99,12 @@ class MainActivity : Activity() {
         if (!GuardService.isReady(this)) {
             val banner = Ui.card(this, 0xFFFFE3D6.toInt())
             banner.add(Ui.text(this, getString(R.string.setup_needed), 15f))
+            root.add(banner, topMarginDp = 16)
+        }
+
+        if (!store.gamesAllowedNow() && reason != REASON_HOURS) {
+            val banner = Ui.card(this, 0xFFFFF1C2.toInt())
+            banner.add(Ui.text(this, GuardService.hoursClosedText(this, store), 17f, bold = true, center = true))
             root.add(banner, topMarginDp = 16)
         }
 
@@ -141,7 +149,7 @@ class MainActivity : Activity() {
 
         // Big round avatar + name and time; tapping anywhere on the card means "I want to play".
         val top = Ui.row(this)
-        top.addView(Ui.avatar(this, kid.name, if (done) Ui.MUTED else kid.color, 72))
+        top.addView(Ui.kidAvatar(this, kid, if (done) Ui.MUTED else kid.color, 72))
         val info = Ui.column(this).apply { setPadding(dp(16), 0, dp(16), 0) }
         info.add(Ui.text(this, kid.name + if (playing) "  " + getString(R.string.playing_badge) else "", 26f, kid.color, bold = true))
         info.add(
@@ -171,6 +179,10 @@ class MainActivity : Activity() {
 
     /** Tapping a name first asks "is it really you?" (if the parent turned that on). */
     private fun play(kid: Kid) {
+        if (!store.gamesAllowedNow() && !store.parentPlaying()) {
+            Toast.makeText(this, GuardService.hoursClosedText(this, store), Toast.LENGTH_LONG).show()
+            return
+        }
         if (store.kidLockMode == Store.LOCK_OFF) {
             startPlaying(kid)
         } else {
@@ -254,6 +266,7 @@ class MainActivity : Activity() {
         const val EXTRA_KID = "kid"
         const val REASON_WHO = "who"
         const val REASON_TIME_UP = "time_up"
+        const val REASON_HOURS = "hours"
         private const val REQUEST_KID_CHECK = 1
     }
 }

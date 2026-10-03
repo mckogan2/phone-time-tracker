@@ -196,6 +196,23 @@ class GuardService : Service() {
             hideCover()
             return
         }
+
+        // Outside the allowed hours no one plays, even with time left.
+        if (!store.gamesAllowedNow()) {
+            if (store.activeKid() != null) {
+                store.pause()
+                Sync.flush(this)
+            }
+            block(
+                Intent(this, MainActivity::class.java)
+                    .putExtra(MainActivity.EXTRA_REASON, MainActivity.REASON_HOURS)
+                    .putExtra(MainActivity.EXTRA_GAME, pkg),
+                hoursClosedText(this, store),
+            )
+            updateNotification()
+            return
+        }
+
         val kid = store.activeKid()
         val title = when {
             kid == null -> getString(R.string.who_title)
@@ -454,6 +471,15 @@ class GuardService : Service() {
             "com.google.android.packageinstaller",
             "com.samsung.android.packageinstaller",
         )
+
+        /** "Games start at 10:00" in the morning, "No more games today" in the evening. */
+        fun hoursClosedText(context: Context, store: Store): String {
+            val from = Ui.formatTimeOfDay(context, store.hoursFrom)
+            return context.getString(
+                if (store.beforeOpening()) R.string.hours_closed_morning else R.string.hours_closed_night,
+                from,
+            )
+        }
 
         fun hasUsageAccess(context: Context): Boolean {
             val ops = context.getSystemService(AppOpsManager::class.java) ?: return false

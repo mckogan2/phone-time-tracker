@@ -10,6 +10,8 @@ A small Android app that gives each child their own daily game-time budget on a 
 - **Warnings** at 5 minutes and 1 minute left.
 - **Refills every day at midnight.**
 - **Parent controls behind a PIN:** add/edit/remove children, change minutes, +15 min bonus, reset today, stop now, choose which apps count as games, and change the PIN.
+- **Kid pictures:** Parents → Kids → 📷 Photo on a child's card. A small copy syncs to the other parent's phone.
+- **Allowed hours:** Parents → Games → "Games only at set hours" (e.g. 10:00–19:30). Outside them games are blocked even with time left; applies to all family phones.
 - **Time bubble on the game:** a small "⏸ 12 min" pill in the child's color shows the minutes left; tap it to pause, drag it out of the way. It turns red in the last minute.
 - **Tap your avatar to play:** big round avatars on the kids' screen; one tap starts.
 - **Parent playing:** Parents → 15/30/60 min during which your own games on this phone aren't blocked or counted.
@@ -33,6 +35,8 @@ A small Android app that gives each child their own daily game-time budget on a 
 4. תחת **משחקים** בדקו את הרשימה (🤖 = נמצא אוטומטית). חסר משחק? **בחירת משחקים**.
 5. הפעילו **נעילת הגדרות הטלפון בקוד**.
 6. שפה: **🌐 שפה** במסך ההורים (או לפי שפת הטלפון).
+**עוד:** תמונה לכל ילד (הורים ← ילדים ← 📷 תמונה), ושעות משחק — למשל רק מ-10:00 עד 19:30 (הורים ← משחקים ← שעות משחק).
+
 **חדש:** בועת זמן על המשחק (לחיצה = הפסקה, גרירה = הזזה), לחיצה על העיגול של הילד כדי לשחק, "הורה משחק" ל-15/30/60 דקות, וסיכום "היום" — כמה כל ילד שיחק ובאילו משחקים.
 
 7. **מי משחק — הגנה:** בחרו תמונה סודית, מספר סודי או אישור הורה, וקבעו לכל ילד את הסוד שלו ב"עריכה".
