@@ -208,16 +208,17 @@ class GuardService : Service() {
             } else if (MyAppActivity.isShowing(pkg)) {
                 hideCover()
             } else {
-                // Ran out while using it (or did so in the last 10 minutes) → "Want more?" with the wait;
-                // ran out elsewhere → a normal fresh start.
-                if (allowedInFront == pkg) store.startMyAppCooldown(pkg)
-                val ranOutHere = store.inMyAppCooldown(pkg)
+                // Time ran out in the last 10 minutes (here or while in another app) → "Want more?" with
+                // the wait. Longer ago, or ended on purpose ("End now"/Close) → a normal fresh start.
+                val until = store.myAppUntil(pkg)
+                if (until > 0) store.startMyAppCooldown(pkg, from = until)
+                val wantMore = store.inMyAppCooldown(pkg)
                 allowedInFront = null
                 store.endMyApp(pkg)
                 block(
                     Intent(this, MyAppActivity::class.java)
                         .putExtra(MyAppActivity.EXTRA_APP, pkg)
-                        .putExtra(MyAppActivity.EXTRA_MORE, ranOutHere),
+                        .putExtra(MyAppActivity.EXTRA_MORE, wantMore),
                     appLabel(pkg),
                 )
             }

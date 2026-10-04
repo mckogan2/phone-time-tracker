@@ -299,8 +299,9 @@ class Store(context: Context) {
      * After time runs out inside the app, reopening it (from recents, the icon, anywhere) within
      * [MY_APP_COOLDOWN_MS] still asks "want more?" with the 30-second wait instead of starting fresh.
      */
-    fun startMyAppCooldown(pkg: String) {
-        prefs.edit().putLong("myapp_cooldown_$pkg", System.currentTimeMillis() + MY_APP_COOLDOWN_MS).apply()
+    /** "Want more?" (with the wait) on the next open, until 10 minutes after [from] (when the time ran out). */
+    fun startMyAppCooldown(pkg: String, from: Long = System.currentTimeMillis()) {
+        prefs.edit().putLong("myapp_cooldown_$pkg", from + MY_APP_COOLDOWN_MS).apply()
     }
 
     fun inMyAppCooldown(pkg: String): Boolean = System.currentTimeMillis() < prefs.getLong("myapp_cooldown_$pkg", 0L)
