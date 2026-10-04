@@ -325,6 +325,15 @@ class ParentActivity : Activity() {
             isChecked = store.useFingerprint
             setOnCheckedChangeListener { _, checked -> store.useFingerprint = checked }
         }, topMarginDp = 8)
+        val voiceRow = Ui.row(this)
+        voiceRow.addView(Switch(this).apply {
+            text = getString(R.string.voice_reminders)
+            textSize = 16f
+            isChecked = store.voiceReminders
+            setOnCheckedChangeListener { _, checked -> store.voiceReminders = checked }
+        }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        voiceRow.addView(Ui.button(this, getString(R.string.voice_try), Ui.MUTED, 15f) { Voice.play(this, 5) })
+        root.add(voiceRow, topMarginDp = 8)
         root.add(Ui.button(this, getString(R.string.open_settings), Ui.MUTED) {
             openSystem(Intent(Settings.ACTION_SETTINGS))
         }, topMarginDp = 8)

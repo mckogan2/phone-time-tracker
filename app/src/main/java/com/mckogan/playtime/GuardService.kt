@@ -423,13 +423,15 @@ class GuardService : Service() {
             warnedAtMinutes = Int.MAX_VALUE
         }
         val remaining = store.remainingMs(kid)
-        for (minutes in WARN_AT_MINUTES) {
-            if (remaining <= minutes * Store.MINUTE_MS && warnedAtMinutes > minutes && remaining > 0) {
-                warnedAtMinutes = minutes
-                val text = resources.getQuantityString(R.plurals.warn_left, minutes, kid.name, minutes)
-                Toast.makeText(this, text, Toast.LENGTH_LONG).show()
-            }
-        }
+        if (remaining <= 0) return
+        // More time than at the last reminder (a new day, or a parent added minutes): start over.
+        if (warnedAtMinutes != Int.MAX_VALUE && remaining > warnedAtMinutes * Store.MINUTE_MS) warnedAtMinutes = Int.MAX_VALUE
+        // The lowest mark just crossed (a kid starting with 4 minutes hears "5", not "10" then "5").
+        val minutes = WARN_AT_MINUTES.filter { remaining <= it * Store.MINUTE_MS && warnedAtMinutes > it }.minOrNull() ?: return
+        warnedAtMinutes = minutes
+        val text = resources.getQuantityString(R.plurals.warn_left, minutes, kid.name, minutes)
+        Toast.makeText(this, text, Toast.LENGTH_LONG).show()
+        if (store.voiceReminders) Voice.play(this, minutes)
     }
 
     private fun notificationTitle(): String {
@@ -538,7 +540,7 @@ class GuardService : Service() {
         private const val QUERY_OVERLAP_MS = 2_000L
         private const val RELAUNCH_MS = 1_500L
         private const val AWAY_PAUSE_MS = 5 * Store.MINUTE_MS
-        private val WARN_AT_MINUTES = intArrayOf(5, 1)
+        private val WARN_AT_MINUTES = intArrayOf(10, 5, 1)
         private const val CHANNEL_ID = "game_time"
         private const val NOTIFICATION_ID = 1
         private const val MY_APPS_CHANNEL_ID = "my_apps"

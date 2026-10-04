@@ -264,6 +264,11 @@ class Store(context: Context) {
         get() = prefs.getBoolean(KEY_FINGERPRINT, true)
         set(value) = prefs.edit().putBoolean(KEY_FINGERPRINT, value).apply()
 
+    /** Spoken reminders at 10, 5 and 1 minutes left. This phone only. */
+    var voiceReminders: Boolean
+        get() = prefs.getBoolean(KEY_VOICE, true)
+        set(value) = prefs.edit().putBoolean(KEY_VOICE, value).apply()
+
     // ---- My apps: the parent's own apps that ask "how long?" before opening (this phone only) ----
 
     fun myApps(): Set<String> = prefs.getStringSet(KEY_MY_APPS, emptySet())!!.toSet()
@@ -567,6 +572,7 @@ class Store(context: Context) {
         private const val KEY_GAMES = "games"
         private const val KEY_ONBOARDED = "onboarded"
         private const val KEY_FINGERPRINT = "use_fingerprint"
+        private const val KEY_VOICE = "voice_reminders"
         private const val KEY_MY_APPS = "my_apps"
         private const val KEY_HOURS_ON = "hours_on"
         private const val KEY_HOURS_FROM = "hours_from"
