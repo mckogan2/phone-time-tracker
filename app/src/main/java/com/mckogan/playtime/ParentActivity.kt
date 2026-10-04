@@ -41,8 +41,15 @@ class ParentActivity : Activity() {
     private var showPermissions = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Ui.applyTheme(this)
         super.onCreate(savedInstanceState)
         store = Store(this)
+        tab = savedInstanceState?.getString(STATE_TAB)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(STATE_TAB, tab)
     }
 
     override fun onRestart() {
@@ -63,7 +70,7 @@ class ParentActivity : Activity() {
         super.onStop()
         stoppedAt = System.currentTimeMillis()
         // Screen off, Home, or another app: lock the parent area again.
-        if (!keepOpen) finish()
+        if (!keepOpen && !isChangingConfigurations) finish()
     }
 
     private fun render() {
@@ -112,7 +119,7 @@ class ParentActivity : Activity() {
 
     /** "Parent playing": your own games aren't blocked or counted on this phone for a while. */
     private fun parentPlayingCard(): LinearLayout {
-        val card = Ui.card(this, 0xFFE6F0FF.toInt())
+        val card = Ui.card(this, Ui.INFO_BG)
         if (store.parentPlaying()) {
             card.add(Ui.text(this, getString(R.string.parent_playing_until, Ui.formatTime(this, store.parentPlayingUntil)), 16f, bold = true))
             card.add(Ui.button(this, getString(R.string.parent_playing_end), Ui.MUTED, 15f) {
@@ -334,6 +341,7 @@ class ParentActivity : Activity() {
         }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         voiceRow.addView(Ui.button(this, getString(R.string.voice_try), Ui.MUTED, 15f) { Voice.play(this, 5) })
         root.add(voiceRow, topMarginDp = 8)
+        root.add(Ui.button(this, getString(R.string.theme, themeLabel(store.theme)), Ui.MUTED) { chooseTheme() }, topMarginDp = 8)
         root.add(Ui.button(this, getString(R.string.open_settings), Ui.MUTED) {
             openSystem(Intent(Settings.ACTION_SETTINGS))
         }, topMarginDp = 8)
@@ -695,10 +703,33 @@ class ParentActivity : Activity() {
         startActivity(intent)
     }
 
+    private fun themeLabel(theme: String) = getString(
+        when (theme) {
+            Ui.THEME_LIGHT -> R.string.theme_light
+            Ui.THEME_DARK -> R.string.theme_dark
+            else -> R.string.theme_system
+        }
+    )
+
+    /** Follow phone / Light / Dark. Redraws this screen in the new colors right away. */
+    private fun chooseTheme() {
+        AlertDialog.Builder(this)
+            .setSingleChoiceItems(THEMES.map { themeLabel(it) }.toTypedArray(), THEMES.indexOf(store.theme)) { dialog, which ->
+                dialog.dismiss()
+                if (THEMES[which] == store.theme) return@setSingleChoiceItems
+                store.theme = THEMES[which]
+                keepOpen = true
+                recreate()
+            }
+            .show()
+    }
+
     companion object {
         private const val TAB_KIDS = "kids"
         private const val TAB_GAMES = "games"
         private const val TAB_SETTINGS = "settings"
+        private const val STATE_TAB = "tab"
+        private val THEMES = listOf(Ui.THEME_SYSTEM, Ui.THEME_LIGHT, Ui.THEME_DARK)
         private const val REQUEST_PHOTO = 7
 
         /** The newest APK, published by CI to the public releases-only repository. */

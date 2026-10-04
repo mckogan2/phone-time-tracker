@@ -27,6 +27,7 @@ class KidCheckActivity : Activity() {
     private var entered = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Ui.applyTheme(this)
         super.onCreate(savedInstanceState)
         store = Store(this)
         val found = store.kid(intent.getStringExtra(EXTRA_KID))

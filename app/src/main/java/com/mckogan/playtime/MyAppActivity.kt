@@ -43,6 +43,7 @@ class MyAppActivity : Activity() {
     private enum class Step { NONE, WHO, CHOOSE, MORE, COUNTDOWN }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Ui.applyTheme(this)
         super.onCreate(savedInstanceState)
         store = Store(this)
         pkg = intent.getStringExtra(EXTRA_APP) ?: return finish()
