@@ -211,8 +211,8 @@ class GuardService : Service() {
             } else if (MyAppActivity.isShowing(pkg)) {
                 hideCover()
             } else {
-                // Time ran out in the last 10 minutes (here or while in another app) → "Want more?" with
-                // the wait. Longer ago, or ended on purpose ("End now"/Close) → a normal fresh start.
+                // Time ran out (or "End now") in the last 10 minutes, here or while in another app →
+                // "Want more?" with the wait. Longer ago → a normal fresh start.
                 val until = store.myAppUntil(pkg)
                 if (until > 0) store.startMyAppCooldown(pkg, from = until)
                 val wantMore = store.inMyAppCooldown(pkg)
