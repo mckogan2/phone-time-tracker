@@ -52,7 +52,7 @@ class KidCheckActivity : Activity() {
             Store.LOCK_NUMBER -> getString(R.string.check_number_title, kid.name)
             else -> getString(R.string.check_parent_title, kid.name)
         }
-        root.add(Ui.text(this, title, 26f, kid.color, bold = true, center = true), topMarginDp = 32)
+        root.add(Ui.text(this, title, 26f, Ui.kid(kid.color), bold = true, center = true), topMarginDp = 32)
         dotsView = Ui.text(this, "", 40f, Ui.ACCENT, bold = true, center = true)
         messageView = Ui.text(this, "", 16f, Ui.MUTED, center = true)
         if (mode != Store.LOCK_PICTURE) root.add(dotsView, topMarginDp = 16)

@@ -25,15 +25,54 @@ object Ui {
 
     val BG get() = pick(0xFFFFF8F0, 0xFF121212)
     val TEXT get() = pick(0xFF222222, 0xFFEDEDED)
-    val MUTED get() = pick(0xFF777777, 0xFF9A9A9A)
-    const val ACCENT = 0xFFFF7A45.toInt()
-    const val DANGER = 0xFFE5484D.toInt()
+    val MUTED get() = pick(0xFF777777, 0xFF9E9E9E)
+    val ACCENT get() = pick(0xFFFF7A45, 0xFFFF9A6B)
+    val DANGER get() = pick(0xFFE5484D, 0xFFFF7B7F)
     val CARD get() = pick(0xFFFFFFFF, 0xFF1E1E1E)
-    val TRACK get() = pick(0xFFECECEC, 0xFF333333)
+    val TRACK get() = pick(0xFFECECEC, 0xFF2C2C2C)
     /** Banner backgrounds: setup needed, outside game hours, parent playing. */
-    val WARN_BG get() = pick(0xFFFFE3D6, 0xFF4A2A1E)
-    val HOURS_BG get() = pick(0xFFFFF1C2, 0xFF4A3F17)
-    val INFO_BG get() = pick(0xFFE6F0FF, 0xFF1D2B45)
+    val WARN_BG get() = pick(0xFFFFE3D6, 0xFF3A2418)
+    val HOURS_BG get() = pick(0xFFFFF1C2, 0xFF3A3218)
+    val INFO_BG get() = pick(0xFFE6F0FF, 0xFF1A2233)
+
+    // Dark mode is "tonal": instead of bright solid fills, a dark tint of the color with the color
+    // itself for text and rings. Gray buttons are plain dark gray with light text.
+    private const val DARK_BG = 0xFF121212.toInt()
+    private const val DARK_GRAY = 0xFF2A2A2A.toInt()
+    private const val DARK_ON_GRAY = 0xFFDDDDDD.toInt()
+
+    /** The kids' colors, softer and lighter in dark mode so they read well on black. */
+    private val KID_DARK = mapOf(
+        0xFF4F7CFF.toInt() to 0xFF8AA4FF.toInt(), // blue
+        0xFF2EB872.toInt() to 0xFF5FD39A.toInt(), // green
+        0xFFB45CE6.toInt() to 0xFFD19BF0.toInt(), // purple
+        0xFFFF8A3D.toInt() to 0xFFFFA766.toInt(), // orange
+    )
+
+    /** A kid's color for this screen's theme. */
+    fun kid(color: Int): Int = if (!dark) color else KID_DARK[color] ?: blend(color, 0xFFFFFFFF.toInt(), 0.3f)
+
+    /** [color] mixed into [base]: [amount] 0 = base, 1 = color. */
+    fun blend(color: Int, base: Int, amount: Float): Int {
+        fun ch(shift: Int) = (((color shr shift) and 0xFF) * amount + ((base shr shift) and 0xFF) * (1 - amount)).toInt()
+        return (0xFF shl 24) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
+    }
+
+    private fun isGray(color: Int) = color == MUTED || color == TRACK
+
+    /** Background for something "filled" with [color]: the color itself, or a dark tint of it in dark mode. */
+    fun fill(color: Int): Int = when {
+        !dark -> color
+        isGray(color) -> DARK_GRAY
+        else -> blend(color, DARK_BG, 0.2f)
+    }
+
+    /** Text on a [fill] of [color]. */
+    private fun onFill(color: Int): Int = when {
+        !dark -> 0xFFFFFFFF.toInt()
+        isGray(color) -> DARK_ON_GRAY
+        else -> color
+    }
 
     const val THEME_SYSTEM = "system"
     const val THEME_LIGHT = "light"
@@ -98,8 +137,9 @@ object Ui {
         text = label
         textSize = sizeSp
         isAllCaps = false
-        setTextColor(0xFFFFFFFF.toInt())
-        background = rounded(color, 16, context)
+        setTextColor(onFill(color))
+        if (dark && !isGray(color)) setTypeface(typeface, Typeface.BOLD)
+        background = rounded(fill(color), 16, context)
         stateListAnimator = null
         val p = context.dp(12)
         setPadding(p * 2, p, p * 2, p)
@@ -185,10 +225,7 @@ object Ui {
         return ImageView(context).apply {
             setImageBitmap(bitmap)
             scaleType = ImageView.ScaleType.CENTER_CROP
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(color)
-            }
+            background = circle(context, color)
             clipToOutline = true
             layoutParams = LinearLayout.LayoutParams(size, size)
         }
@@ -203,12 +240,25 @@ object Ui {
     /** A filled circle in [color] with the first letter of [name]. */
     fun avatar(context: Context, name: String, color: Int, sizeDp: Int): TextView {
         val size = context.dp(sizeDp)
-        return text(context, name.trim().take(1).uppercase(), sizeDp * 0.45f, 0xFFFFFFFF.toInt(), bold = true, center = true).apply {
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(color)
-            }
+        return text(context, name.trim().take(1).uppercase(), sizeDp * 0.45f, onFill(color), bold = true, center = true).apply {
+            background = circle(context, color)
             layoutParams = LinearLayout.LayoutParams(size, size)
+        }
+    }
+
+    /** A circle filled with [color]; in dark mode a dark tint with a ring of the color. */
+    private fun circle(context: Context, color: Int) = GradientDrawable().apply {
+        shape = GradientDrawable.OVAL
+        setColor(fill(color))
+        if (dark) setStroke(context.dp(2), color)
+    }
+
+    /** A switch; in dark mode its "on" color is the app's accent instead of the phone's. */
+    fun switch(context: Context) = android.widget.Switch(context).apply {
+        if (dark) {
+            val states = arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf())
+            thumbTintList = ColorStateList(states, intArrayOf(ACCENT, 0xFFBDBDBD.toInt()))
+            trackTintList = ColorStateList(states, intArrayOf(blend(ACCENT, DARK_BG, 0.5f), 0xFF555555.toInt()))
         }
     }
 

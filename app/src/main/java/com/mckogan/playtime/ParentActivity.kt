@@ -186,7 +186,7 @@ class ParentActivity : Activity() {
                 "${label(pkg)} ${(ms + 30_000) / 60_000}"
             }
             val line = Ui.row(this)
-            line.addView(Ui.kidAvatar(this, kid, kid.color, 32))
+            line.addView(Ui.kidAvatar(this, kid, Ui.kid(kid.color), 32))
             line.addView(
                 Ui.text(
                     this,
@@ -204,7 +204,7 @@ class ParentActivity : Activity() {
     private fun gamesTab(root: LinearLayout) {
         root.add(section(getString(R.string.section_games)), topMarginDp = 20)
         val detected = store.detectedGames(refresh = true)
-        root.add(Switch(this).apply {
+        root.add(Ui.switch(this).apply {
             text = getString(R.string.auto_games)
             textSize = 16f
             isChecked = store.autoGames
@@ -227,7 +227,7 @@ class ParentActivity : Activity() {
 
         // Allowed hours: games are blocked outside them, even with time left.
         root.add(section(getString(R.string.section_hours)), topMarginDp = 24)
-        root.add(Switch(this).apply {
+        root.add(Ui.switch(this).apply {
             text = getString(R.string.hours_switch)
             textSize = 16f
             isChecked = store.hoursEnabled
@@ -320,20 +320,20 @@ class ParentActivity : Activity() {
         addSyncSection(root)
 
         root.add(section(getString(R.string.section_security)), topMarginDp = 24)
-        root.add(Switch(this).apply {
+        root.add(Ui.switch(this).apply {
             text = getString(R.string.lock_settings)
             textSize = 16f
             isChecked = store.protectSettings
             setOnCheckedChangeListener { _, checked -> store.protectSettings = checked }
         }, topMarginDp = 8)
-        root.add(Switch(this).apply {
+        root.add(Ui.switch(this).apply {
             text = getString(R.string.use_fingerprint)
             textSize = 16f
             isChecked = store.useFingerprint
             setOnCheckedChangeListener { _, checked -> store.useFingerprint = checked }
         }, topMarginDp = 8)
         val voiceRow = Ui.row(this)
-        voiceRow.addView(Switch(this).apply {
+        voiceRow.addView(Ui.switch(this).apply {
             text = getString(R.string.voice_reminders)
             textSize = 16f
             isChecked = store.voiceReminders
@@ -510,9 +510,9 @@ class ParentActivity : Activity() {
         val card = Ui.card(this)
         val remaining = store.remainingMs(kid)
         val header = Ui.row(this)
-        header.addView(Ui.kidAvatar(this, kid, kid.color, 48).apply { setOnClickListener { choosePhoto(kid) } })
+        header.addView(Ui.kidAvatar(this, kid, Ui.kid(kid.color), 48).apply { setOnClickListener { choosePhoto(kid) } })
         header.addView(
-            Ui.text(this, kid.name + if (playing) "  " + getString(R.string.playing_badge) else "", 22f, kid.color, bold = true)
+            Ui.text(this, kid.name + if (playing) "  " + getString(R.string.playing_badge) else "", 22f, Ui.kid(kid.color), bold = true)
                 .apply { setPadding(dp(12), 0, dp(12), 0) },
             LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
         )
@@ -539,7 +539,7 @@ class ParentActivity : Activity() {
         )
 
         val row1 = Ui.row(this)
-        row1.addView(Ui.button(this, getString(R.string.bonus_15), kid.color, 15f) {
+        row1.addView(Ui.button(this, getString(R.string.bonus_15), Ui.kid(kid.color), 15f) {
             store.addBonus(kid.id, 15)
             render()
         }, weighted())
@@ -593,7 +593,7 @@ class ParentActivity : Activity() {
             val grid = GridLayout(this).apply { columnCount = 6 }
             val cells = mutableListOf<TextView>()
             fun paint() = cells.forEach {
-                it.background = Ui.rounded(if (it.text == picture) Ui.ACCENT else Ui.TRACK, 12, this)
+                it.background = Ui.rounded(Ui.fill(if (it.text == picture) Ui.ACCENT else Ui.TRACK), 12, this)
             }
             for (animal in Store.SECRET_PICTURES) {
                 val cell = Ui.text(this, animal, 26f, center = true).apply {

@@ -158,9 +158,9 @@ class MainActivity : Activity() {
 
         // Big round avatar + name and time; tapping anywhere on the card means "I want to play".
         val top = Ui.row(this)
-        top.addView(Ui.kidAvatar(this, kid, if (done) Ui.MUTED else kid.color, 72))
+        top.addView(Ui.kidAvatar(this, kid, if (done) Ui.MUTED else Ui.kid(kid.color), 72))
         val info = Ui.column(this).apply { setPadding(dp(16), 0, dp(16), 0) }
-        info.add(Ui.text(this, kid.name + if (playing) "  " + getString(R.string.playing_badge) else "", 26f, kid.color, bold = true))
+        info.add(Ui.text(this, kid.name + if (playing) "  " + getString(R.string.playing_badge) else "", 26f, Ui.kid(kid.color), bold = true))
         info.add(
             Ui.text(
                 this,
@@ -171,9 +171,9 @@ class MainActivity : Activity() {
             ),
         )
         top.addView(info, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        if (!done && !playing) top.addView(Ui.text(this, "▶", 34f, kid.color, bold = true))
+        if (!done && !playing) top.addView(Ui.text(this, "▶", 34f, Ui.kid(kid.color), bold = true))
         card.add(top)
-        card.add(Ui.progress(this, if (total > 0) remaining.toFloat() / total else 0f, kid.color), topMarginDp = 16)
+        card.add(Ui.progress(this, if (total > 0) remaining.toFloat() / total else 0f, Ui.kid(kid.color)), topMarginDp = 16)
 
         when {
             playing -> card.add(Ui.button(this, getString(R.string.pause), Ui.MUTED) {

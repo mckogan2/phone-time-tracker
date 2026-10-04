@@ -103,7 +103,7 @@ class WelcomeActivity : Activity() {
                 setPadding(p, p, p, p)
             }
             row.addView(
-                Ui.text(this, kid.name, 20f, kid.color, bold = true),
+                Ui.text(this, kid.name, 20f, Ui.kid(kid.color), bold = true),
                 LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
             )
             row.addView(Ui.text(this, Ui.formatMinutes(this, kid.dailyMinutes * Store.MINUTE_MS), 16f, Ui.MUTED))
