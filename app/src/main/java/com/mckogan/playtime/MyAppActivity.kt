@@ -135,17 +135,40 @@ class MyAppActivity : Activity() {
         })
     }
 
-    /** First open: only a parent goes on. */
-    private fun askWho() = screen(Step.WHO) {
-        add(Ui.text(this@MyAppActivity, getString(R.string.myapp_who), 20f, Ui.MUTED, center = true), topMarginDp = 8)
-        add(Ui.button(this@MyAppActivity, getString(R.string.myapp_parent)) {
-            waitingForParent = true
-            startActivityForResult(
-                Intent(this@MyAppActivity, PinActivity::class.java).putExtra(PinActivity.EXTRA_MODE, PinActivity.MODE_VERIFY),
-                REQUEST_PARENT,
-            )
-        }, topMarginDp = 32)
-        add(Ui.button(this@MyAppActivity, getString(R.string.myapp_close), Ui.MUTED) { close() }, topMarginDp = 12)
+    /**
+     * First open. Only on the parent's list: straight to the parent check (fingerprint/PIN), then minutes.
+     * Also a kids' game: "Parent or kid?" first; a kid goes to the kids' names and plays on their time.
+     */
+    private fun askWho() {
+        val shared = pkg in store.games()
+        screen(Step.WHO) {
+            add(Ui.text(this@MyAppActivity, getString(R.string.myapp_who), 20f, Ui.MUTED, center = true), topMarginDp = 8)
+            add(Ui.button(this@MyAppActivity, getString(R.string.myapp_parent)) { checkParent() }, topMarginDp = 32)
+            if (shared) add(Ui.button(this@MyAppActivity, getString(R.string.myapp_kid)) { kidPlays() }, topMarginDp = 12)
+            add(Ui.button(this@MyAppActivity, getString(R.string.myapp_close), Ui.MUTED) { close() }, topMarginDp = 12)
+        }
+        // The parent's own app: no question, the check pops up by itself (the screen stays as a fallback).
+        if (!shared) checkParent()
+    }
+
+    private fun checkParent() {
+        if (waitingForParent) return
+        waitingForParent = true
+        startActivityForResult(
+            Intent(this, PinActivity::class.java).putExtra(PinActivity.EXTRA_MODE, PinActivity.MODE_VERIFY),
+            REQUEST_PARENT,
+        )
+    }
+
+    /** A kid wants this app as a game: the kids' names, then it opens on that kid's time. */
+    private fun kidPlays() {
+        startActivity(
+            Intent(this, MainActivity::class.java)
+                .putExtra(MainActivity.EXTRA_REASON, MainActivity.REASON_WHO)
+                .putExtra(MainActivity.EXTRA_GAME, pkg)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        )
+        finish()
     }
 
     private fun chooseTime() = screen(Step.CHOOSE) {

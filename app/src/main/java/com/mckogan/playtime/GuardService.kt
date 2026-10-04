@@ -200,8 +200,11 @@ class GuardService : Service() {
             return
         }
 
-        // The parent's own apps: "who's using?" before, "want more?" after the chosen time.
-        if (pkg in store.myApps()) {
+        // The parent's own apps: "how long?" before, "want more?" after the chosen time. An app that is
+        // also a kids' game counts as a game while a kid is playing (or a parent is playing).
+        val asGame = pkg in store.games() && !store.myAppActive(pkg) &&
+            (store.parentPlaying() || store.activeKid() != null)
+        if (pkg in store.myApps() && !asGame) {
             if (store.myAppActive(pkg)) {
                 allowedInFront = pkg
                 hideCover()

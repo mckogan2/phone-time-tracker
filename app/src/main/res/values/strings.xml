@@ -169,6 +169,7 @@
     <string name="my_apps_choose">Choose my apps</string>
     <string name="myapp_who">Who\'s using it?</string>
     <string name="myapp_parent">👤 Parent</string>
+    <string name="myapp_kid">🧒 Kid</string>
     <string name="myapp_close">Close</string>
     <string name="myapp_how_long">For how long?</string>
     <string name="myapp_time_up">Your time is up. Want more?</string>

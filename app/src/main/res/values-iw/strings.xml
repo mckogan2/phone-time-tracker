@@ -173,6 +173,7 @@
     <string name="my_apps_choose">בחירת האפליקציות שלי</string>
     <string name="myapp_who">מי משתמש?</string>
     <string name="myapp_parent">👤 הורה</string>
+    <string name="myapp_kid">🧒 ילד/ה</string>
     <string name="myapp_close">סגירה</string>
     <string name="myapp_how_long">לכמה זמן?</string>
     <string name="myapp_time_up">הזמן נגמר. רוצה עוד?</string>
