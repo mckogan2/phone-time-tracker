@@ -292,6 +292,7 @@ class Store(context: Context) {
         prefs.edit()
             .putLong("myapp_until_$pkg", System.currentTimeMillis() + minutes * MINUTE_MS)
             .remove("myapp_cooldown_$pkg")
+            .remove("myapp_wait_$pkg")
             .apply()
     }
 
@@ -305,6 +306,16 @@ class Store(context: Context) {
     }
 
     fun inMyAppCooldown(pkg: String): Boolean = System.currentTimeMillis() < prefs.getLong("myapp_cooldown_$pkg", 0L)
+
+    /**
+     * When the 30-second "want more?" wait began (0 = not yet). One wait between two sessions:
+     * leaving in the middle and coming back continues it, by the clock.
+     */
+    fun myAppWaitStart(pkg: String): Long = prefs.getLong("myapp_wait_$pkg", 0L)
+
+    fun setMyAppWaitStart(pkg: String, at: Long) {
+        prefs.edit().putLong("myapp_wait_$pkg", at).apply()
+    }
 
     fun myAppActive(pkg: String): Boolean = System.currentTimeMillis() < myAppUntil(pkg)
 

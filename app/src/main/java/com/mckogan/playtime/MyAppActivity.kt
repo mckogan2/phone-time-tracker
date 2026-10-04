@@ -50,7 +50,12 @@ class MyAppActivity : Activity() {
         appName = runCatching {
             packageManager.getApplicationLabel(packageManager.getApplicationInfo(pkg, 0)).toString()
         }.getOrDefault(pkg)
-        if (intent.getBooleanExtra(EXTRA_MORE, false)) askMore() else askWho()
+        when {
+            !intent.getBooleanExtra(EXTRA_MORE, false) -> askWho()
+            // Already said "yes" and started the wait earlier: carry on with it.
+            store.myAppWaitStart(pkg) > 0 -> countdown()
+            else -> askMore()
+        }
         // Get a fact ready in case the 30-second wait comes.
         Facts.refill(this)
     }
@@ -66,7 +71,12 @@ class MyAppActivity : Activity() {
         appName = runCatching {
             packageManager.getApplicationLabel(packageManager.getApplicationInfo(pkg, 0)).toString()
         }.getOrDefault(pkg)
-        if (intent.getBooleanExtra(EXTRA_MORE, false)) askMore() else askWho()
+        when {
+            !intent.getBooleanExtra(EXTRA_MORE, false) -> askWho()
+            // Already said "yes" and started the wait earlier: carry on with it.
+            store.myAppWaitStart(pkg) > 0 -> countdown()
+            else -> askMore()
+        }
     }
 
     override fun onResume() {
@@ -85,7 +95,7 @@ class MyAppActivity : Activity() {
 
     override fun onStop() {
         super.onStop()
-        // Walking away mid-countdown cancels it; the next open asks again.
+        // Walking away mid-countdown stops the ring; the wait itself keeps counting by the clock.
         if (!waitingForParent) {
             stopCountdown()
             if (!isFinishing) finish()
@@ -164,6 +174,17 @@ class MyAppActivity : Activity() {
     /** 30 seconds you can't skip: a ring fills up while the seconds count down. */
     private fun countdown() {
         stopCountdown()
+        // One wait between two sessions: it started the first time "yes" was tapped, and counts by the
+        // clock even while away (reading the Wikipedia article, say). Done already → straight to minutes.
+        val now = System.currentTimeMillis()
+        val started = store.myAppWaitStart(pkg).takeIf { it in 1..now } ?: now.also { store.setMyAppWaitStart(pkg, it) }
+        val waitMs = COUNTDOWN_S * 1000L
+        val elapsed = now - started
+        if (elapsed >= waitMs) {
+            chooseTime()
+            return
+        }
+        val startFraction = elapsed.toFloat() / waitMs
         screen(Step.COUNTDOWN) {
             add(Ui.text(this@MyAppActivity, getString(R.string.myapp_breathe), 20f, Ui.MUTED, center = true), topMarginDp = 8)
             val ringSize = dp(180)
@@ -193,8 +214,10 @@ class MyAppActivity : Activity() {
             }
             add(Ui.button(this@MyAppActivity, getString(R.string.myapp_close)) { close() }, topMarginDp = 24)
 
-            animator = ValueAnimator.ofFloat(0f, 1f).apply {
-                duration = COUNTDOWN_S * 1000L
+            ring.progress = startFraction
+            number.text = (COUNTDOWN_S - (startFraction * COUNTDOWN_S).toInt()).coerceAtLeast(1).toString()
+            animator = ValueAnimator.ofFloat(startFraction, 1f).apply {
+                duration = waitMs - elapsed
                 interpolator = LinearInterpolator()
                 addUpdateListener {
                     val f = it.animatedValue as Float
