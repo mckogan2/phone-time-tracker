@@ -69,6 +69,8 @@ class GuardService : Service() {
         override fun onReceive(context: Context, intent: Intent) {
             // Phone put down: stop the clock. Next game launch asks "Who's playing?" again,
             store.pause()
+            // "Parent, no time" ends here too: the next person to unlock the phone may be a kid.
+            if (store.parentUntilScreenOff) store.parentPlayingUntil = 0L
             updateNotification()
         }
     }
@@ -440,7 +442,7 @@ class GuardService : Service() {
     }
 
     private fun notificationTitle(): String {
-        if (store.parentPlaying()) return getString(R.string.parent_playing_until, Ui.formatTime(this, store.parentPlayingUntil))
+        if (store.parentPlaying()) return Ui.parentPlayingText(this, store)
         val kid = store.activeKid() ?: return getString(R.string.guard_running)
         return getString(R.string.notif_playing, kid.name, Ui.formatMinutes(this, store.remainingMs(kid)))
     }

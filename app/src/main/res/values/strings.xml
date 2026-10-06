@@ -132,6 +132,8 @@
     <string name="parent_playing_hint">Your own games aren\'t blocked or counted on this phone for a while.</string>
     <string name="parent_playing_until">🎮 Parent playing until %1$s</string>
     <string name="parent_playing_end">End parent playing</string>
+    <string name="parent_plays_now">👤 Parent (no time limit)</string>
+    <string name="parent_playing_screen">🎮 Parent playing until the screen turns off</string>
     <string name="setup_needed_parent">⚠️ Setup needed — see Settings</string>
     <string name="tab_kids">Kids</string>
     <string name="tab_games">Games</string>

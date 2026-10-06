@@ -328,9 +328,19 @@ class Store(context: Context) {
 
     var parentPlayingUntil: Long
         get() = prefs.getLong(KEY_PARENT_UNTIL, 0L)
-        set(value) = prefs.edit().putLong(KEY_PARENT_UNTIL, value).apply()
+        set(value) = prefs.edit().putLong(KEY_PARENT_UNTIL, value).putBoolean(KEY_PARENT_SCREEN, false).apply()
 
     fun parentPlaying(): Boolean = System.currentTimeMillis() < parentPlayingUntil
+
+    /** Parent playing with no time chosen: lasts until the screen turns off. */
+    val parentUntilScreenOff: Boolean get() = prefs.getBoolean(KEY_PARENT_SCREEN, false)
+
+    fun startParentPlayingUntilScreenOff() {
+        prefs.edit()
+            .putLong(KEY_PARENT_UNTIL, System.currentTimeMillis() + PARENT_SCREEN_MAX_MS)
+            .putBoolean(KEY_PARENT_SCREEN, true)
+            .apply()
+    }
 
     // ---- Floating bubble position (this phone only) ----
 
@@ -600,6 +610,9 @@ class Store(context: Context) {
         private const val KEY_MY_GAMES = "my_games"
         private const val KEY_OTHER_GAMES = "other_games"
         private const val KEY_PARENT_UNTIL = "parent_until"
+        private const val KEY_PARENT_SCREEN = "parent_until_screen_off"
+        /** Safety cap for "until the screen turns off". */
+        private const val PARENT_SCREEN_MAX_MS = 6 * 60 * MINUTE_MS
         private const val KEY_BUBBLE_X = "bubble_x"
         private const val KEY_BUBBLE_Y = "bubble_y"
         private const val KEY_EXCLUDED_GAMES = "excluded_games"

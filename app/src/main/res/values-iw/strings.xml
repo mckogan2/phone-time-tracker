@@ -136,6 +136,8 @@
     <string name="parent_playing_hint">המשחקים שלכם לא ייחסמו ולא ייספרו בטלפון הזה לזמן מה.</string>
     <string name="parent_playing_until">🎮 הורה משחק עד %1$s</string>
     <string name="parent_playing_end">סיום משחק הורה</string>
+    <string name="parent_plays_now">👤 הורה (בלי הגבלת זמן)</string>
+    <string name="parent_playing_screen">🎮 הורה משחק עד שהמסך נכבה</string>
     <string name="setup_needed_parent">⚠️ צריך להשלים הגדרה — ראו הגדרות</string>
     <string name="tab_kids">ילדים</string>
     <string name="tab_games">משחקים</string>

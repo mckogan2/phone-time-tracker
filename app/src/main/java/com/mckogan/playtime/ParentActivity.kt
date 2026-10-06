@@ -121,7 +121,7 @@ class ParentActivity : Activity() {
     private fun parentPlayingCard(): LinearLayout {
         val card = Ui.card(this, Ui.INFO_BG)
         if (store.parentPlaying()) {
-            card.add(Ui.text(this, getString(R.string.parent_playing_until, Ui.formatTime(this, store.parentPlayingUntil)), 16f, bold = true))
+            card.add(Ui.text(this, Ui.parentPlayingText(this, store), 16f, bold = true))
             card.add(Ui.button(this, getString(R.string.parent_playing_end), Ui.MUTED, 15f) {
                 store.parentPlayingUntil = 0L
                 render()

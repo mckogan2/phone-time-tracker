@@ -262,6 +262,11 @@ object Ui {
         }
     }
 
+    /** "Parent playing until 14:30" or "…until the screen turns off". */
+    fun parentPlayingText(context: Context, store: Store): String =
+        if (store.parentUntilScreenOff) context.getString(R.string.parent_playing_screen)
+        else context.getString(R.string.parent_playing_until, formatTime(context, store.parentPlayingUntil))
+
     /** Clock time like "14:30", in the phone's 12/24-hour style. */
     fun formatTime(context: Context, millis: Long): String =
         android.text.format.DateFormat.getTimeFormat(context).format(java.util.Date(millis))

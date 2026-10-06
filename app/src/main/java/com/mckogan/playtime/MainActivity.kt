@@ -119,7 +119,7 @@ class MainActivity : Activity() {
 
         if (store.parentPlaying()) {
             val banner = Ui.card(this, Ui.INFO_BG)
-            banner.add(Ui.text(this, getString(R.string.parent_playing_until, Ui.formatTime(this, store.parentPlayingUntil)), 16f, bold = true))
+            banner.add(Ui.text(this, Ui.parentPlayingText(this, store), 16f, bold = true))
             banner.add(Ui.button(this, getString(R.string.parent_playing_end), Ui.MUTED, 16f) {
                 store.parentPlayingUntil = 0L
                 render()
@@ -128,6 +128,17 @@ class MainActivity : Activity() {
         }
 
         for (kid in store.kids()) root.add(kidCard(kid, active), topMarginDp = 16)
+
+        // A game was opened and no one is playing yet: a parent can just play it (fingerprint, no time).
+        val game = blockedGame
+        if (reason == REASON_WHO && game != null) {
+            root.add(Ui.button(this, getString(R.string.parent_plays_now), Ui.MUTED) {
+                startActivityForResult(
+                    Intent(this, PinActivity::class.java).putExtra(PinActivity.EXTRA_MODE, PinActivity.MODE_VERIFY),
+                    REQUEST_PARENT,
+                )
+            }, topMarginDp = 16)
+        }
 
         if (active != null && blockedGame == null) root.add(gamePicker(), topMarginDp = 20)
 
@@ -205,6 +216,15 @@ class MainActivity : Activity() {
     @Deprecated("Activity.onActivityResult is fine for a no-AndroidX app")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_PARENT && resultCode == RESULT_OK) {
+            store.startParentPlayingUntilScreenOff()
+            val game = blockedGame
+            reason = null
+            blockedGame = null
+            if (game != null && launch(game)) return
+            render()
+            return
+        }
         if (requestCode != REQUEST_KID_CHECK || resultCode != RESULT_OK) return
         store.kid(data?.getStringExtra(KidCheckActivity.EXTRA_KID))?.let { startPlaying(it) }
     }
@@ -277,5 +297,6 @@ class MainActivity : Activity() {
         const val REASON_TIME_UP = "time_up"
         const val REASON_HOURS = "hours"
         private const val REQUEST_KID_CHECK = 1
+        private const val REQUEST_PARENT = 2
     }
 }
