@@ -7,6 +7,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
 import android.widget.GridLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import com.mckogan.playtime.Ui.add
 import com.mckogan.playtime.Ui.dp
@@ -62,7 +63,12 @@ class KidCheckActivity : Activity() {
         } else {
             root.add(Ui.keypad(this) { press(it) }, topMarginDp = 16, fill = false)
         }
-        setContentView(root)
+        // Scrolls on small screens (24 animals).
+        setContentView(ScrollView(this).apply {
+            setBackgroundColor(Ui.BG)
+            isFillViewport = true
+            addView(root)
+        })
         refresh()
         if (mode == Store.LOCK_PARENT) Fingerprint.ask(this, title) { pass() }
     }
@@ -72,20 +78,20 @@ class KidCheckActivity : Activity() {
         super.onDestroy()
     }
 
-    /** The kid's animal and 5 others, shuffled every time so siblings can't learn a position. */
+    /** All the animals, shuffled every time so siblings can't learn a position. */
     private fun pictureGrid(): GridLayout {
         val secret = kid.secretPicture!!
-        val choices = (Store.SECRET_PICTURES.filter { it != secret }.shuffled().take(5) + secret).shuffled()
-        val grid = GridLayout(this).apply { columnCount = 3 }
+        val choices = (Store.SECRET_PICTURES - secret + secret).shuffled()
+        val grid = GridLayout(this).apply { columnCount = 4 }
         for (animal in choices) {
-            val cell = Ui.text(this, animal, 48f, center = true).apply {
-                background = Ui.rounded(Ui.CARD, 24, this@KidCheckActivity)
+            val cell = Ui.text(this, animal, 36f, center = true).apply {
+                background = Ui.rounded(Ui.CARD, 18, this@KidCheckActivity)
                 setOnClickListener { answer(animal == secret) }
             }
             val lp = GridLayout.LayoutParams().apply {
-                width = dp(96)
-                height = dp(96)
-                val m = dp(8)
+                width = dp(72)
+                height = dp(72)
+                val m = dp(6)
                 setMargins(m, m, m, m)
             }
             grid.addView(cell, lp)

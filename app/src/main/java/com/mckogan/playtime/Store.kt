@@ -578,7 +578,10 @@ class Store(context: Context) {
         private const val KID_LOCKOUT_MS = 30_000L
 
         /** Animals a kid can pick as their secret picture. */
-        val SECRET_PICTURES = listOf("🦁", "🐸", "🐵", "🐼", "🐯", "🐶", "🐱", "🐰", "🦄", "🐢", "🐙", "🦋")
+        val SECRET_PICTURES = listOf(
+            "🦁", "🐸", "🐵", "🐼", "🐯", "🐶", "🐱", "🐰", "🦄", "🐢", "🐙", "🦋",
+            "🐻", "🦊", "🐨", "🐮", "🐷", "🐧", "🐘", "🦒", "🐬", "🐝", "🐞", "🦓",
+        )
 
         /** Called after a shared setting changes on this phone (set by family sync). */
         @Volatile var onSharedChange: (() -> Unit)? = null
