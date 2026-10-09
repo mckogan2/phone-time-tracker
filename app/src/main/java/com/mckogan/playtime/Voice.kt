@@ -25,12 +25,10 @@ object Voice {
         playClip(app, CLIPS[lang(app)]?.get(minutes) ?: return)
     }
 
-    /** "Time's up! Three more minutes?" — plays only if that recording is in the app (voice_<lang>_extra). */
+    /** "Time's up! Do you want three more minutes?" */
     fun playExtraOffer(context: Context) {
         val app = context.applicationContext
-        @Suppress("DiscouragedApi")
-        val clip = app.resources.getIdentifier("voice_${lang(app)}_extra", "raw", app.packageName)
-        if (clip != 0) playClip(app, clip)
+        playClip(app, if (lang(app) == "he") R.raw.voice_he_extra else R.raw.voice_en_extra)
     }
 
     private fun lang(app: Context) =
