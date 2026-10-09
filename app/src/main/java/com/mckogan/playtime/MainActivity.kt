@@ -187,12 +187,14 @@ class MainActivity : Activity() {
         val row = Ui.row(this)
         row.addView(Ui.button(this, getString(R.string.extra_yes), Ui.kid(GREEN), 26f) {
             store.markExtraOffered(kid.id)
+            store.recordExtra(taken = true)
             store.addBonus(kid.id, Store.EXTRA_MINUTES)
             Sync.flush(this)
             startPlaying(kid)
         }, LinearLayout.LayoutParams(0, dp(96), 1f))
         row.addView(Ui.button(this, getString(R.string.extra_no), Ui.DANGER, 26f) {
             store.markExtraOffered(kid.id)
+            store.recordExtra(taken = false)
             render()
         }, LinearLayout.LayoutParams(0, dp(96), 1f).apply { marginStart = dp(16) })
         root.add(row, topMarginDp = 32)

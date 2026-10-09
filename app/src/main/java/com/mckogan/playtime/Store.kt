@@ -230,8 +230,47 @@ class Store(context: Context) {
             kid.put(pkg, kid.optLong(pkg) + ms)
             e.putString(KEY_MY_GAMES, JSONObject().put("day", today()).put("kids", mine).toString())
         }
+        bumpHistory { day ->
+            val kids = day.optJSONObject("kids") ?: JSONObject().also { day.put("kids", it) }
+            kids.put(kidId, kids.optLong(kidId) + ms)
+            if (pkg != null) {
+                val games = day.optJSONObject("games") ?: JSONObject().also { day.put("games", it) }
+                val perGame = games.optJSONObject(kidId) ?: JSONObject().also { games.put(kidId, it) }
+                perGame.put(pkg, perGame.optLong(pkg) + ms)
+            }
+        }
         e.apply()
     }
+
+    // ---- Stats history (this phone): per day, for the parents' Stats tab ----
+
+    private fun bumpHistory(update: (JSONObject) -> Unit) {
+        val all = prefs.getString(KEY_HISTORY, null)?.let { JSONObject(it) } ?: JSONObject()
+        val day = all.optJSONObject(today()) ?: JSONObject().also { all.put(today(), it) }
+        update(day)
+        val oldest = LocalDate.now().minusDays(HISTORY_DAYS).toString()
+        all.keys().asSequence().filter { it < oldest }.toList().forEach { all.remove(it) }
+        prefs.edit().putString(KEY_HISTORY, all.toString()).apply()
+    }
+
+    /** This phone's history for [day]: kids (ms), games (kid -> pkg -> ms), myApps (pkg -> min), extra counts. */
+    fun historyDay(day: String): JSONObject =
+        prefs.getString(KEY_HISTORY, null)?.let { JSONObject(it).optJSONObject(day) } ?: JSONObject()
+
+    /** A "my app" session started with [minutes] chosen. */
+    fun recordMyApp(pkg: String, minutes: Int) = bumpHistory { day ->
+        val apps = day.optJSONObject("myApps") ?: JSONObject().also { day.put("myApps", it) }
+        apps.put(pkg, apps.optInt(pkg) + minutes)
+    }
+
+    /** The "3 more minutes?" offer: taken (yes) or not. */
+    fun recordExtra(taken: Boolean) = bumpHistory { day ->
+        val key = if (taken) "extraYes" else "extraNo"
+        day.put(key, day.optInt(key) + 1)
+    }
+
+    /** "Want more?" was asked for one of my apps (the wait started). */
+    fun recordMoreAsked() = bumpHistory { day -> day.put("moreAsked", day.optInt("moreAsked") + 1) }
 
     // ---- Per-game time today (for the daily summary) ----
 
@@ -617,6 +656,8 @@ class Store(context: Context) {
         private const val KEY_VOICE = "voice_reminders"
         private const val KEY_THEME = "theme"
         private const val KEY_OFFER_EXTRA = "offer_extra"
+        private const val KEY_HISTORY = "history"
+        private const val HISTORY_DAYS = 14L
         const val EXTRA_MINUTES = 3
         private const val KEY_MY_APPS = "my_apps"
         private const val KEY_HOURS_ON = "hours_on"

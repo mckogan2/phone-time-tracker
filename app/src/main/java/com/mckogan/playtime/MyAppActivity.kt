@@ -200,7 +200,10 @@ class MyAppActivity : Activity() {
         // One wait between two sessions: it started the first time "yes" was tapped, and counts by the
         // clock even while away (reading the Wikipedia article, say). Done already → straight to minutes.
         val now = System.currentTimeMillis()
-        val started = store.myAppWaitStart(pkg).takeIf { it in 1..now } ?: now.also { store.setMyAppWaitStart(pkg, it) }
+        val started = store.myAppWaitStart(pkg).takeIf { it in 1..now } ?: now.also {
+            store.setMyAppWaitStart(pkg, it)
+            store.recordMoreAsked()
+        }
         val waitMs = COUNTDOWN_S * 1000L
         val elapsed = now - started
         if (elapsed >= waitMs) {
@@ -307,6 +310,7 @@ class MyAppActivity : Activity() {
 
     private fun start(minutes: Int) {
         store.startMyApp(pkg, minutes)
+        store.recordMyApp(pkg, minutes)
         packageManager.getLaunchIntentForPackage(pkg)?.let {
             startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }

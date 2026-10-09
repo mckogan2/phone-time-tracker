@@ -160,6 +160,33 @@ object Sync {
         store.familyId?.let { pushUsage(store, it) }
     }
 
+    /**
+     * The family's kids' usage for each day in [days], as {day: kids map}, from the cloud.
+     * [onResult] gets null if the family isn't synced or any day can't be read (then this phone's history is used).
+     */
+    fun fetchDays(context: Context, days: List<String>, onResult: (Map<String, Map<*, *>>?) -> Unit) {
+        val app = context.applicationContext
+        val familyId = Store(app).familyId
+        if (familyId == null || !isConfigured(app)) {
+            onResult(null)
+            return
+        }
+        val results = mutableMapOf<String, Map<*, *>>()
+        var pending = days.size
+        var failed = false
+        for (date in days) {
+            day(familyId, date).get()
+                .addOnSuccessListener { snap ->
+                    results[date] = snap.get("kids") as? Map<*, *> ?: emptyMap<Any, Any>()
+                    if (--pending == 0) onResult(if (failed) null else results)
+                }
+                .addOnFailureListener {
+                    failed = true
+                    if (--pending == 0) onResult(null)
+                }
+        }
+    }
+
     private fun pushUsage(store: Store, familyId: String) {
         val date = store.today()
         val me = store.phoneId

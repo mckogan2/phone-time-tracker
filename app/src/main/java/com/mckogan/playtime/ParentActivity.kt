@@ -14,6 +14,7 @@ import android.provider.MediaStore
 import android.provider.Settings
 import android.text.InputFilter
 import android.text.InputType
+import android.view.Gravity
 import android.view.View
 import android.widget.EditText
 import android.widget.GridLayout
@@ -88,6 +89,7 @@ class ParentActivity : Activity() {
         when (tab) {
             TAB_KIDS -> kidsTab(root)
             TAB_GAMES -> gamesTab(root)
+            TAB_STATS -> statsTab(root)
             else -> settingsTab(root, guardOn)
         }
 
@@ -99,9 +101,100 @@ class ParentActivity : Activity() {
         })
     }
 
+    /** Parent-only stats: the last 7 days of kids' time, top games, and my apps. Loads from the cloud if synced. */
+    private fun statsTab(root: LinearLayout) {
+        val box = Ui.column(this)
+        box.add(Ui.text(this, getString(R.string.stats_loading), 16f, Ui.MUTED, center = true), topMarginDp = 16)
+        root.add(box, topMarginDp = 16)
+        Stats.load(this) { week ->
+            if (isFinishing || tab != TAB_STATS) return@load
+            box.removeAllViews()
+            fillStats(box, week)
+        }
+    }
+
+    private fun fillStats(box: LinearLayout, week: Stats.Week) {
+        if (!Stats.hasAnything(week)) {
+            box.add(Ui.text(this, getString(R.string.stats_no_data), 16f, Ui.MUTED, center = true), topMarginDp = 16)
+            return
+        }
+        if (!week.family) box.add(Ui.text(this, getString(R.string.stats_local), 14f, Ui.MUTED, center = true), topMarginDp = 8)
+
+        box.add(section(getString(R.string.stats_daily)), topMarginDp = 16)
+        dailyChart(box, week)
+
+        box.add(section(getString(R.string.stats_games)), topMarginDp = 24)
+        for (kid in store.kids()) gameBars(box, kid, week.games[kid.id].orEmpty())
+
+        box.add(section(getString(R.string.stats_my_apps)), topMarginDp = 24)
+        if (week.myApps.isEmpty()) box.add(Ui.text(this, getString(R.string.stats_none), 15f, Ui.MUTED), topMarginDp = 8)
+        for ((pkg, minutes) in week.myApps) {
+            val line = Ui.row(this)
+            line.addView(Ui.text(this, label(pkg), 16f), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            line.addView(Ui.text(this, getString(R.string.minutes_short, minutes), 16f, bold = true))
+            box.add(line, topMarginDp = 8)
+        }
+
+        box.add(section(getString(R.string.stats_extra)), topMarginDp = 24)
+        box.add(Ui.text(this, getString(R.string.stats_extra_taken, week.extraYes), 16f), topMarginDp = 8)
+        box.add(Ui.text(this, getString(R.string.stats_extra_declined, week.extraNo), 16f), topMarginDp = 6)
+        box.add(Ui.text(this, getString(R.string.stats_more_asked, week.moreAsked), 16f), topMarginDp = 6)
+        box.add(Ui.text(this, getString(R.string.stats_this_phone), 13f, Ui.MUTED), topMarginDp = 8)
+    }
+
+    /** One column per day for each kid, in their colors. All kids share one scale, so they compare fairly. */
+    private fun dailyChart(box: LinearLayout, week: Stats.Week) {
+        val max = week.daily.values.flatten().maxOrNull()?.coerceAtLeast(1L) ?: 1L
+        for (kid in store.kids()) {
+            val values = week.daily[kid.id] ?: continue
+            box.add(Ui.text(this, kid.name, 18f, Ui.kid(kid.color), bold = true), topMarginDp = 12)
+            val chart = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.BOTTOM
+            }
+            val labels = Ui.row(this)
+            for ((i, ms) in values.withIndex()) {
+                val column = Ui.column(this).apply { gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL }
+                val minutes = (ms + 59_999) / 60_000
+                column.addView(Ui.text(this, if (ms > 0) minutes.toString() else "", 11f, Ui.MUTED, center = true))
+                val bar = View(this).apply { background = Ui.rounded(Ui.kid(kid.color), 6, this@ParentActivity) }
+                val height = if (ms <= 0) dp(2) else (dp(110) * ms / max).toInt().coerceAtLeast(dp(4))
+                column.addView(bar, LinearLayout.LayoutParams(dp(20), height))
+                chart.addView(column, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+                labels.addView(
+                    Ui.text(this, Stats.weekday(week.days[i]), 12f, Ui.MUTED, center = true),
+                    LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
+                )
+            }
+            box.add(chart, topMarginDp = 8)
+            box.add(labels, topMarginDp = 4)
+        }
+    }
+
+    /** A kid's top games for the week as horizontal bars, in their color. */
+    private fun gameBars(box: LinearLayout, kid: Kid, games: List<Pair<String, Long>>) {
+        if (games.isEmpty()) return
+        val rows = Stats.topGames(games)
+        val max = rows.maxOf { it.second }.coerceAtLeast(1L)
+        box.add(Ui.text(this, kid.name, 16f, Ui.kid(kid.color), bold = true), topMarginDp = 12)
+        for ((pkg, ms) in rows) {
+            val line = Ui.row(this)
+            val name = if (pkg.isEmpty()) getString(R.string.stats_other) else label(pkg)
+            line.addView(Ui.text(this, name, 15f), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            line.addView(Ui.text(this, Ui.formatMinutes(this, ms), 14f, Ui.MUTED))
+            box.add(line, topMarginDp = 6)
+            box.add(Ui.progress(this, ms.toFloat() / max, Ui.kid(kid.color)), topMarginDp = 4)
+        }
+    }
+
     private fun tabBar(): LinearLayout {
         val bar = Ui.row(this)
-        for ((id, label) in listOf(TAB_KIDS to R.string.tab_kids, TAB_GAMES to R.string.tab_games, TAB_SETTINGS to R.string.tab_settings)) {
+        for ((id, label) in listOf(
+            TAB_KIDS to R.string.tab_kids,
+            TAB_GAMES to R.string.tab_games,
+            TAB_STATS to R.string.tab_stats,
+            TAB_SETTINGS to R.string.tab_settings,
+        )) {
             val selected = tab == id
             bar.addView(
                 Ui.button(this, getString(label), if (selected) Ui.ACCENT else Ui.TRACK, 15f) {
@@ -734,6 +827,7 @@ class ParentActivity : Activity() {
         private const val TAB_KIDS = "kids"
         private const val TAB_GAMES = "games"
         private const val TAB_SETTINGS = "settings"
+        private const val TAB_STATS = "stats"
         private const val STATE_TAB = "tab"
         private val THEMES = listOf(Ui.THEME_SYSTEM, Ui.THEME_LIGHT, Ui.THEME_DARK)
         private const val REQUEST_PHOTO = 7
