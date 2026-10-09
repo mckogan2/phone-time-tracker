@@ -22,8 +22,21 @@ object Voice {
     /** Plays the reminder for [minutes] left (10, 5 or 1). Quietly does nothing if it can't. */
     fun play(context: Context, minutes: Int) {
         val app = context.applicationContext
-        val lang = if (app.resources.configuration.locales[0].language in setOf("iw", "he")) "he" else "en"
-        val clip = CLIPS[lang]?.get(minutes) ?: return
+        playClip(app, CLIPS[lang(app)]?.get(minutes) ?: return)
+    }
+
+    /** "Time's up! Three more minutes?" — plays only if that recording is in the app (voice_<lang>_extra). */
+    fun playExtraOffer(context: Context) {
+        val app = context.applicationContext
+        @Suppress("DiscouragedApi")
+        val clip = app.resources.getIdentifier("voice_${lang(app)}_extra", "raw", app.packageName)
+        if (clip != 0) playClip(app, clip)
+    }
+
+    private fun lang(app: Context) =
+        if (app.resources.configuration.locales[0].language in setOf("iw", "he")) "he" else "en"
+
+    private fun playClip(app: Context, clip: Int) {
         val audio = app.getSystemService(AudioManager::class.java) ?: return
         val attributes = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)

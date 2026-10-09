@@ -166,6 +166,10 @@
     <string name="use_fingerprint">טביעת אצבע במקום קוד</string>
     <string name="voice_reminders">🔊 תזכורות קוליות (10, 5, 1 דק׳)</string>
     <string name="voice_try">▶ נסה</string>
+    <string name="extra_offer">רוצה עוד %1$d דקות?</string>
+    <string name="extra_yes">✅ כן</string>
+    <string name="extra_no">❌ לא</string>
+    <string name="extra_setting">כשהזמן נגמר: להציע עוד %1$d דקות (פעם ביום)</string>
     <string name="theme">🌓 ערכת צבעים: %1$s</string>
     <string name="theme_system">לפי הטלפון</string>
     <string name="theme_light">בהיר</string>

@@ -162,6 +162,10 @@
     <string name="use_fingerprint">Use fingerprint instead of the PIN</string>
     <string name="voice_reminders">🔊 Voice reminders (10, 5, 1 min)</string>
     <string name="voice_try">▶ Try</string>
+    <string name="extra_offer">Want %1$d more minutes?</string>
+    <string name="extra_yes">✅ Yes</string>
+    <string name="extra_no">❌ No</string>
+    <string name="extra_setting">When time is up, offer %1$d more minutes (once a day)</string>
     <string name="theme">🌓 Theme: %1$s</string>
     <string name="theme_system">Follow phone</string>
     <string name="theme_light">Light</string>

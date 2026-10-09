@@ -341,6 +341,12 @@ class ParentActivity : Activity() {
         }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         voiceRow.addView(Ui.button(this, getString(R.string.voice_try), Ui.MUTED, 15f) { Voice.play(this, 5) })
         root.add(voiceRow, topMarginDp = 8)
+        root.add(Ui.switch(this).apply {
+            text = getString(R.string.extra_setting, Store.EXTRA_MINUTES)
+            textSize = 16f
+            isChecked = store.offerExtra
+            setOnCheckedChangeListener { _, checked -> store.offerExtra = checked }
+        }, topMarginDp = 8)
         root.add(Ui.button(this, getString(R.string.theme, themeLabel(store.theme)), Ui.MUTED) { chooseTheme() }, topMarginDp = 8)
         root.add(Ui.button(this, getString(R.string.open_settings), Ui.MUTED) {
             openSystem(Intent(Settings.ACTION_SETTINGS))

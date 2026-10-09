@@ -433,8 +433,11 @@ class GuardService : Service() {
         if (remaining <= 0) return
         // More time than at the last reminder (a new day, or a parent added minutes): start over.
         if (warnedAtMinutes != Int.MAX_VALUE && remaining > warnedAtMinutes * Store.MINUTE_MS) warnedAtMinutes = Int.MAX_VALUE
-        // The lowest mark just crossed (a kid starting with 4 minutes hears "5", not "10" then "5").
-        val minutes = WARN_AT_MINUTES.filter { remaining <= it * Store.MINUTE_MS && warnedAtMinutes > it }.minOrNull() ?: return
+        // Only a mark that is true right now ("5 minutes" between 4 and 5 left): after 3 bonus minutes
+        // the kid hears "1 minute", never a wrong "5 minutes".
+        val minutes = WARN_AT_MINUTES.firstOrNull {
+            remaining <= it * Store.MINUTE_MS && remaining > (it - 1) * Store.MINUTE_MS && warnedAtMinutes > it
+        } ?: return
         warnedAtMinutes = minutes
         val text = resources.getQuantityString(R.plurals.warn_left, minutes, kid.name, minutes)
         Toast.makeText(this, text, Toast.LENGTH_LONG).show()

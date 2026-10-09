@@ -357,6 +357,18 @@ class Store(context: Context) {
         onAdjust?.invoke(kidId, today(), deltaMs)
     }
 
+    /** "Time's up — 3 more minutes?" was already offered to this kid today (yes or no). */
+    fun extraOfferedToday(kidId: String): Boolean = prefs.getString("extra_offer_$kidId", null) == today()
+
+    fun markExtraOffered(kidId: String) {
+        prefs.edit().putString("extra_offer_$kidId", today()).apply()
+    }
+
+    /** Offer kids one "3 more minutes?" a day when their time is up. This phone only. */
+    var offerExtra: Boolean
+        get() = prefs.getBoolean(KEY_OFFER_EXTRA, true)
+        set(value) = prefs.edit().putBoolean(KEY_OFFER_EXTRA, value).apply()
+
     /** Extra time for today only. */
     fun addBonus(kidId: String, minutes: Int) = adjust(kidId, -minutes * MINUTE_MS)
 
@@ -604,6 +616,8 @@ class Store(context: Context) {
         private const val KEY_FINGERPRINT = "use_fingerprint"
         private const val KEY_VOICE = "voice_reminders"
         private const val KEY_THEME = "theme"
+        private const val KEY_OFFER_EXTRA = "offer_extra"
+        const val EXTRA_MINUTES = 3
         private const val KEY_MY_APPS = "my_apps"
         private const val KEY_HOURS_ON = "hours_on"
         private const val KEY_HOURS_FROM = "hours_from"

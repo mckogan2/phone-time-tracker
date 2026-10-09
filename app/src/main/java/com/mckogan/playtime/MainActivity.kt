@@ -25,6 +25,7 @@ class MainActivity : Activity() {
     private var blockedGame: String? = null
     private var blockedKidId: String? = null
     private var createdDark = false
+    private var spokenOfferFor: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Ui.applyTheme(this)
@@ -102,6 +103,20 @@ class MainActivity : Activity() {
             else -> getString(R.string.home_title) to
                 (active?.let { getString(R.string.kid_is_playing, it.name) } ?: getString(R.string.tap_to_play))
         }
+        val offerKid = store.kid(blockedKidId)?.takeIf {
+            reason == REASON_TIME_UP && store.offerExtra && store.gamesAllowedNow() &&
+                !store.extraOfferedToday(it.id) && store.remainingMs(it) <= 0
+        }
+        if (offerKid != null) {
+            extraOffer(root, offerKid)
+            setContentView(ScrollView(this).apply {
+                setBackgroundColor(Ui.BG)
+                isFillViewport = true
+                addView(root)
+            })
+            return
+        }
+
         root.add(Ui.text(this, title, 30f, bold = true, center = true))
         root.add(Ui.text(this, subtitle, 16f, Ui.MUTED, center = true), topMarginDp = 4)
 
@@ -158,6 +173,33 @@ class MainActivity : Activity() {
             setBackgroundColor(Ui.BG)
             addView(root)
         })
+    }
+
+    /** Time's up: once a day, "3 more minutes?" with big ✅ / ❌ (and a voice, if recorded). */
+    private fun extraOffer(root: LinearLayout, kid: Kid) {
+        root.gravity = Gravity.CENTER_HORIZONTAL
+        root.addView(Ui.kidAvatar(this, kid, Ui.kid(kid.color), 96), LinearLayout.LayoutParams(dp(96), dp(96)).apply {
+            topMargin = dp(32)
+            gravity = Gravity.CENTER_HORIZONTAL
+        })
+        root.add(Ui.text(this, getString(R.string.time_up_name, kid.name), 30f, bold = true, center = true), topMarginDp = 16)
+        root.add(Ui.text(this, getString(R.string.extra_offer, Store.EXTRA_MINUTES), 24f, center = true), topMarginDp = 8)
+        val row = Ui.row(this)
+        row.addView(Ui.button(this, getString(R.string.extra_yes), Ui.kid(GREEN), 26f) {
+            store.markExtraOffered(kid.id)
+            store.addBonus(kid.id, Store.EXTRA_MINUTES)
+            Sync.flush(this)
+            startPlaying(kid)
+        }, LinearLayout.LayoutParams(0, dp(96), 1f))
+        row.addView(Ui.button(this, getString(R.string.extra_no), Ui.DANGER, 26f) {
+            store.markExtraOffered(kid.id)
+            render()
+        }, LinearLayout.LayoutParams(0, dp(96), 1f).apply { marginStart = dp(16) })
+        root.add(row, topMarginDp = 32)
+        if (spokenOfferFor != kid.id) {
+            spokenOfferFor = kid.id
+            if (store.voiceReminders) Voice.playExtraOffer(this)
+        }
     }
 
     private fun kidCard(kid: Kid, active: Kid?): LinearLayout {
@@ -297,6 +339,7 @@ class MainActivity : Activity() {
         const val REASON_TIME_UP = "time_up"
         const val REASON_HOURS = "hours"
         private const val REQUEST_KID_CHECK = 1
+        private const val GREEN = 0xFF2EB872.toInt()
         private const val REQUEST_PARENT = 2
     }
 }
