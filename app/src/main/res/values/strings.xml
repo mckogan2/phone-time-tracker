@@ -162,6 +162,10 @@
     <string name="use_fingerprint">Use fingerprint instead of the PIN</string>
     <string name="voice_reminders">🔊 Voice reminders (10, 5, 1 min)</string>
     <string name="voice_try">▶ Try</string>
+    <string name="kid_left">%1$s left</string>
+    <string name="kid_today">%1$d of %2$d min today</string>
+    <string name="game_auto">Found automatically</string>
+    <string name="game_chosen">Chosen by you</string>
     <string name="section_voice">🔊 Voice and theme</string>
     <string name="section_phone">📱 Phone settings</string>
     <string name="sum_connected">Connected to the family</string>

@@ -18,6 +18,7 @@ import android.view.Gravity
 import android.view.View
 import android.widget.EditText
 import android.widget.GridLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RadioButton
 import android.widget.RadioGroup
@@ -258,11 +259,8 @@ class ParentActivity : Activity() {
             topMarginDp = 4,
         )
         val timed = store.sortByRecentUse(store.games().map { it to label(it) }, { it.first }, { it.second })
-            .map { (pkg, name) -> (if (pkg in detected) "🤖 " else "🎮 ") + name }
-        root.add(
-            Ui.text(this, if (timed.isEmpty()) getString(R.string.no_games_timed) else timed.joinToString("\n"), 16f),
-            topMarginDp = 8,
-        )
+        if (timed.isEmpty()) root.add(Ui.text(this, getString(R.string.no_games_timed), 16f, Ui.MUTED), topMarginDp = 8)
+        for ((pkg, name) in timed) root.add(gameRow(pkg, name, pkg in detected), topMarginDp = 8)
         root.add(Ui.button(this, getString(R.string.choose_games)) { chooseGames() }, topMarginDp = 8)
 
         // Allowed hours: games are blocked outside them, even with time left.
@@ -604,57 +602,67 @@ class ParentActivity : Activity() {
 
     private fun section(title: String) = Ui.text(this, title, 20f, Ui.ACCENT, bold = true)
 
+    /** A game as a row: its app icon, name, and whether it was found automatically or chosen. */
+    private fun gameRow(pkg: String, name: String, auto: Boolean): LinearLayout {
+        val row = Ui.row(this)
+        row.background = Ui.rounded(Ui.CARD, 16, this)
+        row.setPadding(dp(12), dp(12), dp(12), dp(12))
+        runCatching { packageManager.getApplicationIcon(pkg) }.getOrNull()?.let { icon ->
+            row.addView(ImageView(this).apply { setImageDrawable(icon) }, LinearLayout.LayoutParams(dp(44), dp(44)))
+        }
+        val text = Ui.column(this).apply { setPadding(dp(14), 0, 0, 0) }
+        text.add(Ui.text(this, name, 18f, bold = true))
+        text.add(Ui.text(this, getString(if (auto) R.string.game_auto else R.string.game_chosen), 13f, Ui.MUTED), topMarginDp = 2)
+        row.addView(text, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        return row
+    }
+
     private fun kidCard(kid: Kid, playing: Boolean): LinearLayout {
         val card = Ui.card(this)
         val remaining = store.remainingMs(kid)
-        val header = Ui.row(this)
-        header.addView(Ui.kidAvatar(this, kid, Ui.kid(kid.color), 48).apply { setOnClickListener { choosePhoto(kid) } })
-        header.addView(
-            Ui.text(this, kid.name + if (playing) "  " + getString(R.string.playing_badge) else "", 22f, Ui.kid(kid.color), bold = true)
-                .apply { setPadding(dp(12), 0, dp(12), 0) },
-            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
-        )
-        header.addView(Ui.text(this, getString(R.string.photo_button), 15f, Ui.ACCENT, bold = true).apply {
-            setOnClickListener { choosePhoto(kid) }
-        })
-        card.add(header)
-        if (store.missingSecret(kid)) {
-            card.add(Ui.text(this, getString(R.string.no_secret_set), 14f, Ui.DANGER), topMarginDp = 2)
-        }
-        card.add(
-            Ui.text(
-                this,
-                getString(
-                    R.string.kid_summary,
-                    kid.dailyMinutes,
-                    Ui.formatClock(store.usedMs(kid.id).coerceAtLeast(0)),
-                    Ui.formatClock(remaining),
-                ),
-                15f,
-                Ui.MUTED,
-            ),
-            topMarginDp = 4,
-        )
+        val total = kid.dailyMinutes * Store.MINUTE_MS
+        val usedMin = (store.usedMs(kid.id).coerceAtLeast(0) + 59_999) / 60_000
 
+        val header = Ui.row(this)
+        header.addView(Ui.kidAvatar(this, kid, Ui.kid(kid.color), 60).apply { setOnClickListener { choosePhoto(kid) } })
+        val info = Ui.column(this).apply { setPadding(dp(14), 0, dp(8), 0) }
+        info.add(Ui.text(this, kid.name + if (playing) "  " + getString(R.string.playing_badge) else "", 24f, Ui.kid(kid.color), bold = true))
+        info.add(
+            Ui.text(this, getString(R.string.kid_left, Ui.formatMinutes(this, remaining)), 22f, bold = true),
+            topMarginDp = 2,
+        )
+        header.addView(info, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        card.add(header)
+
+        card.add(Ui.progress(this, if (total > 0) remaining.toFloat() / total else 0f, Ui.kid(kid.color)), topMarginDp = 14)
+        card.add(
+            Ui.text(this, getString(R.string.kid_today, usedMin, kid.dailyMinutes), 15f, Ui.MUTED),
+            topMarginDp = 8,
+        )
+        if (store.missingSecret(kid)) {
+            card.add(Ui.text(this, getString(R.string.no_secret_set), 14f, Ui.DANGER), topMarginDp = 4)
+        }
+
+        // The everyday action first; the rest below.
         val row1 = Ui.row(this)
-        row1.addView(Ui.button(this, getString(R.string.bonus_15), Ui.kid(kid.color), 15f) {
+        row1.addView(Ui.button(this, getString(R.string.bonus_15), Ui.kid(kid.color), 16f) {
             store.addBonus(kid.id, 15)
             render()
         }, weighted())
-        row1.addView(Ui.button(this, getString(R.string.reset_today), Ui.MUTED, 15f) {
-            store.resetToday(kid.id)
-            render()
-        }, weighted(leftMarginDp = 8))
-        card.add(row1, topMarginDp = 12)
+        row1.addView(Ui.button(this, getString(R.string.edit), Ui.MUTED, 16f) { editKid(kid) }, weighted(leftMarginDp = 8))
+        card.add(row1, topMarginDp = 14)
 
         val row2 = Ui.row(this)
-        row2.addView(Ui.button(this, getString(R.string.edit), Ui.MUTED, 15f) { editKid(kid) }, weighted())
         if (playing) {
             row2.addView(Ui.button(this, getString(R.string.stop_now), Ui.DANGER, 15f) {
                 store.pause()
                 render()
-            }, weighted(leftMarginDp = 8))
+            }, weighted())
         } else {
+            row2.addView(Ui.button(this, getString(R.string.reset_today), Ui.MUTED, 15f) {
+                store.resetToday(kid.id)
+                render()
+            }, weighted())
             row2.addView(Ui.button(this, getString(R.string.remove), Ui.DANGER, 15f) { confirmRemove(kid) }, weighted(leftMarginDp = 8))
         }
         card.add(row2, topMarginDp = 8)

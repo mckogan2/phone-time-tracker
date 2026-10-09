@@ -166,6 +166,10 @@
     <string name="use_fingerprint">טביעת אצבע במקום קוד</string>
     <string name="voice_reminders">🔊 תזכורות קוליות (10, 5, 1 דק׳)</string>
     <string name="voice_try">▶ נסה</string>
+    <string name="kid_left">נשארו %1$s</string>
+    <string name="kid_today">%1$d מתוך %2$d דקות היום</string>
+    <string name="game_auto">זוהה אוטומטית</string>
+    <string name="game_chosen">נבחר על ידיכם</string>
     <string name="section_voice">🔊 קול ונושא</string>
     <string name="section_phone">📱 הגדרות הטלפון</string>
     <string name="sum_connected">מחובר למשפחה</string>
