@@ -77,7 +77,6 @@ class ParentActivity : Activity() {
     private fun render() {
         val root = Ui.column(this, 20)
         root.add(Ui.text(this, getString(R.string.parent_title), 28f, bold = true))
-        root.add(parentPlayingCard(), topMarginDp = 12)
 
         val guardOn = GuardService.isReady(this)
         if (tab == null) tab = if (guardOn) TAB_KIDS else TAB_SETTINGS
@@ -211,34 +210,7 @@ class ParentActivity : Activity() {
     }
 
     /** "Parent playing": your own games aren't blocked or counted on this phone for a while. */
-    private fun parentPlayingCard(): LinearLayout {
-        val card = Ui.card(this, Ui.INFO_BG)
-        if (store.parentPlaying()) {
-            card.add(Ui.text(this, Ui.parentPlayingText(this, store), 16f, bold = true))
-            card.add(Ui.button(this, getString(R.string.parent_playing_end), Ui.MUTED, 15f) {
-                store.parentPlayingUntil = 0L
-                render()
-            }, topMarginDp = 8)
-        } else {
-            card.add(Ui.text(this, getString(R.string.parent_playing), 16f, bold = true))
-            card.add(Ui.text(this, getString(R.string.parent_playing_hint), 14f, Ui.MUTED), topMarginDp = 2)
-            val row = Ui.row(this)
-            for ((i, minutes) in listOf(15, 30, 60).withIndex()) {
-                row.addView(Ui.button(this, getString(R.string.minutes_short, minutes), Ui.ACCENT, 15f) {
-                    store.parentPlayingUntil = System.currentTimeMillis() + minutes * Store.MINUTE_MS
-                    store.pause()
-                    render()
-                }, weighted(leftMarginDp = if (i == 0) 0 else 6))
-            }
-            card.add(row, topMarginDp = 8)
-        }
-        return card
-    }
-
     private fun kidsTab(root: LinearLayout) {
-        root.add(section(getString(R.string.section_today)), topMarginDp = 20)
-        root.add(todaySummary(), topMarginDp = 6)
-
         root.add(section(getString(R.string.section_children)), topMarginDp = 24)
         val active = store.activeKid()
         for (kid in store.kids()) root.add(kidCard(kid, active?.id == kid.id), topMarginDp = 10)
@@ -269,31 +241,6 @@ class ParentActivity : Activity() {
     }
 
     /** One line per child: minutes played today and on which games (all family phones). */
-    private fun todaySummary(): LinearLayout {
-        val card = Ui.card(this)
-        val kids = store.kids()
-        if (kids.isEmpty()) card.add(Ui.text(this, getString(R.string.today_nothing), 15f, Ui.MUTED))
-        for ((i, kid) in kids.withIndex()) {
-            val used = store.usedMs(kid.id).coerceAtLeast(0)
-            val games = store.gamesToday(kid.id).take(4).joinToString(" · ") { (pkg, ms) ->
-                "${label(pkg)} ${(ms + 30_000) / 60_000}"
-            }
-            val line = Ui.row(this)
-            line.addView(Ui.kidAvatar(this, kid, Ui.kid(kid.color), 32))
-            line.addView(
-                Ui.text(
-                    this,
-                    getString(R.string.today_line, kid.name, Ui.formatMinutes(this, used)) +
-                        if (games.isNotEmpty()) "\n$games" else "",
-                    15f,
-                ).apply { setPadding(dp(12), 0, 0, 0) },
-                LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
-            )
-            card.add(line, topMarginDp = if (i == 0) 0 else 10)
-        }
-        return card
-    }
-
     private fun gamesTab(root: LinearLayout) {
         root.add(section(getString(R.string.section_games)), topMarginDp = 20)
         val detected = store.detectedGames(refresh = true)
