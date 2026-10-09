@@ -635,7 +635,13 @@ class ParentActivity : Activity() {
 
         val icons = Ui.row(this)
         fun icon(label: String, description: String, color: Int, onClick: () -> Unit) =
-            Ui.button(this, label, color, 22f, onClick).apply { contentDescription = description }
+            Ui.button(this, label, color, 22f, onClick).apply {
+                contentDescription = description
+                // Icon only: small padding, and never shorten the icon to "…".
+                setPadding(0, dp(12), 0, dp(12))
+                ellipsize = null
+                maxLines = 1
+            }
 
         icons.addView(icon("➕", getString(R.string.bonus_15), Ui.ACCENT) {
             store.addBonus(kid.id, 15)
