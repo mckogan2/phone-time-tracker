@@ -162,6 +162,12 @@
     <string name="use_fingerprint">Use fingerprint instead of the PIN</string>
     <string name="voice_reminders">🔊 Voice reminders (10, 5, 1 min)</string>
     <string name="voice_try">▶ Try</string>
+    <string name="section_voice">🔊 Voice and theme</string>
+    <string name="section_phone">📱 Phone settings</string>
+    <string name="sum_connected">Connected to the family</string>
+    <string name="sum_not_connected">Not connected</string>
+    <string name="sum_pin_on">Settings lock: on</string>
+    <string name="sum_pin_off">Settings lock: off</string>
     <string name="tab_stats">📊</string>
     <string name="stats_loading">Loading the week…</string>
     <string name="stats_no_data">No stats yet. They fill in as the kids play, starting today.</string>

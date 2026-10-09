@@ -166,6 +166,12 @@
     <string name="use_fingerprint">טביעת אצבע במקום קוד</string>
     <string name="voice_reminders">🔊 תזכורות קוליות (10, 5, 1 דק׳)</string>
     <string name="voice_try">▶ נסה</string>
+    <string name="section_voice">🔊 קול ונושא</string>
+    <string name="section_phone">📱 הגדרות הטלפון</string>
+    <string name="sum_connected">מחובר למשפחה</string>
+    <string name="sum_not_connected">לא מחובר</string>
+    <string name="sum_pin_on">נעילת הגדרות: פעילה</string>
+    <string name="sum_pin_off">נעילת הגדרות: כבויה</string>
     <string name="tab_stats">📊</string>
     <string name="stats_loading">טוען את השבוע…</string>
     <string name="stats_no_data">עוד אין נתונים. הם יתמלאו כשהילדים ישחקו, החל מהיום.</string>

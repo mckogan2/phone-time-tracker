@@ -352,7 +352,6 @@ class ParentActivity : Activity() {
     }
 
     private fun settingsTab(root: LinearLayout, guardOn: Boolean) {
-        root.add(section(getString(R.string.section_permissions)), topMarginDp = 20)
         val usage = GuardService.hasUsageAccess(this)
         val overlay = GuardService.canOverlay(this)
         val notif = Build.VERSION.SDK_INT < 33 ||
@@ -360,108 +359,161 @@ class ParentActivity : Activity() {
         val battery = getSystemService(PowerManager::class.java)!!.isIgnoringBatteryOptimizations(packageName)
         val allSet = usage && overlay && notif && battery
 
-        if (allSet && !showPermissions) {
-            // Everything is on: one line, tap to see the details.
-            root.add(Ui.text(this, getString(R.string.all_set), 16f, bold = true).apply {
-                setOnClickListener {
-                    showPermissions = true
-                    render()
-                }
-            }, topMarginDp = 8)
-        } else {
-            root.add(
-                Ui.text(
-                    this,
-                    getString(if (guardOn) R.string.guard_on else R.string.guard_off),
-                    16f,
-                    if (guardOn) Ui.TEXT else Ui.DANGER,
-                    bold = true,
-                ),
-                topMarginDp = 8,
-            )
-            root.add(
-                permissionRow(getString(R.string.perm_usage), getString(R.string.perm_usage_hint), usage) {
-                    openSystem(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
-                },
-                topMarginDp = 10,
-            )
-            root.add(
-                permissionRow(getString(R.string.perm_overlay), getString(R.string.perm_overlay_hint), overlay) {
-                    openSystem(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
-                },
-                topMarginDp = 10,
-            )
-            root.add(
-                permissionRow(getString(R.string.perm_notif), getString(R.string.perm_notif_hint), notif) {
-                    openSystem(
-                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-                    )
-                },
-                topMarginDp = 10,
-            )
-            root.add(
-                permissionRow(getString(R.string.perm_battery), getString(R.string.perm_battery_hint), battery) {
-                    openSystem(
-                        Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName"))
-                    )
-                },
-                topMarginDp = 10,
-            )
+        collapsible(
+            root, "permissions", getString(R.string.section_permissions),
+            if (allSet) getString(R.string.all_set) else getString(R.string.guard_off),
+            defaultOpen = !allSet,
+        ) { root ->
+            if (allSet && !showPermissions) {
+                // Everything is on: one line, tap to see the details.
+                root.add(Ui.text(this, getString(R.string.all_set), 16f, bold = true).apply {
+                    setOnClickListener {
+                        showPermissions = true
+                        render()
+                    }
+                }, topMarginDp = 8)
+            } else {
+                root.add(
+                    Ui.text(
+                        this,
+                        getString(if (guardOn) R.string.guard_on else R.string.guard_off),
+                        16f,
+                        if (guardOn) Ui.TEXT else Ui.DANGER,
+                        bold = true,
+                    ),
+                    topMarginDp = 8,
+                )
+                root.add(
+                    permissionRow(getString(R.string.perm_usage), getString(R.string.perm_usage_hint), usage) {
+                        openSystem(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                    },
+                    topMarginDp = 10,
+                )
+                root.add(
+                    permissionRow(getString(R.string.perm_overlay), getString(R.string.perm_overlay_hint), overlay) {
+                        openSystem(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
+                    },
+                    topMarginDp = 10,
+                )
+                root.add(
+                    permissionRow(getString(R.string.perm_notif), getString(R.string.perm_notif_hint), notif) {
+                        openSystem(
+                            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                        )
+                    },
+                    topMarginDp = 10,
+                )
+                root.add(
+                    permissionRow(getString(R.string.perm_battery), getString(R.string.perm_battery_hint), battery) {
+                        openSystem(
+                            Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName"))
+                        )
+                    },
+                    topMarginDp = 10,
+                )
+            }
         }
 
-        root.add(section(getString(R.string.section_sync)), topMarginDp = 24)
-        addSyncSection(root)
+        collapsible(
+            root, "sync", getString(R.string.section_sync),
+            getString(if (store.familyId != null) R.string.sum_connected else R.string.sum_not_connected),
+            defaultOpen = false,
+        ) { root ->
+            addSyncSection(root)
+        }
 
-        root.add(section(getString(R.string.section_security)), topMarginDp = 24)
-        root.add(Ui.switch(this).apply {
-            text = getString(R.string.lock_settings)
-            textSize = 16f
-            isChecked = store.protectSettings
-            setOnCheckedChangeListener { _, checked -> store.protectSettings = checked }
-        }, topMarginDp = 8)
-        root.add(Ui.switch(this).apply {
-            text = getString(R.string.use_fingerprint)
-            textSize = 16f
-            isChecked = store.useFingerprint
-            setOnCheckedChangeListener { _, checked -> store.useFingerprint = checked }
-        }, topMarginDp = 8)
-        val voiceRow = Ui.row(this)
-        voiceRow.addView(Ui.switch(this).apply {
-            text = getString(R.string.voice_reminders)
-            textSize = 16f
-            isChecked = store.voiceReminders
-            setOnCheckedChangeListener { _, checked -> store.voiceReminders = checked }
-        }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        voiceRow.addView(Ui.button(this, getString(R.string.voice_try), Ui.MUTED, 15f) { Voice.play(this, 5) })
-        root.add(voiceRow, topMarginDp = 8)
-        root.add(Ui.switch(this).apply {
-            text = getString(R.string.extra_setting, Store.EXTRA_MINUTES)
-            textSize = 16f
-            isChecked = store.offerExtra
-            setOnCheckedChangeListener { _, checked -> store.offerExtra = checked }
-        }, topMarginDp = 8)
-        root.add(Ui.button(this, getString(R.string.theme, themeLabel(store.theme)), Ui.MUTED) { chooseTheme() }, topMarginDp = 8)
-        root.add(Ui.button(this, getString(R.string.open_settings), Ui.MUTED) {
-            openSystem(Intent(Settings.ACTION_SETTINGS))
-        }, topMarginDp = 8)
-        if (Build.VERSION.SDK_INT >= 33) {
-            root.add(Ui.button(this, getString(R.string.language), Ui.MUTED) {
-                openSystem(Intent(Settings.ACTION_APP_LOCALE_SETTINGS, Uri.parse("package:$packageName")))
+        collapsible(
+            root, "security", getString(R.string.section_security),
+            getString(if (store.protectSettings) R.string.sum_pin_on else R.string.sum_pin_off),
+            defaultOpen = false,
+        ) { root ->
+            root.add(Ui.switch(this).apply {
+                text = getString(R.string.lock_settings)
+                textSize = 16f
+                isChecked = store.protectSettings
+                setOnCheckedChangeListener { _, checked -> store.protectSettings = checked }
+            }, topMarginDp = 8)
+            root.add(Ui.switch(this).apply {
+                text = getString(R.string.use_fingerprint)
+                textSize = 16f
+                isChecked = store.useFingerprint
+                setOnCheckedChangeListener { _, checked -> store.useFingerprint = checked }
+            }, topMarginDp = 8)
+            root.add(Ui.button(this, getString(R.string.change_pin), Ui.MUTED) {
+                keepOpen = true
+                startActivity(Intent(this, PinActivity::class.java).putExtra(PinActivity.EXTRA_MODE, PinActivity.MODE_CHANGE))
             }, topMarginDp = 8)
         }
-        root.add(Ui.button(this, getString(R.string.change_pin), Ui.MUTED) {
-            keepOpen = true
-            startActivity(Intent(this, PinActivity::class.java).putExtra(PinActivity.EXTRA_MODE, PinActivity.MODE_CHANGE))
-        }, topMarginDp = 8)
+
+        collapsible(root, "voice", getString(R.string.section_voice), "", defaultOpen = false) { root ->
+            val voiceRow = Ui.row(this)
+            voiceRow.addView(Ui.switch(this).apply {
+                text = getString(R.string.voice_reminders)
+                textSize = 16f
+                isChecked = store.voiceReminders
+                setOnCheckedChangeListener { _, checked -> store.voiceReminders = checked }
+            }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            voiceRow.addView(Ui.button(this, getString(R.string.voice_try), Ui.MUTED, 15f) { Voice.play(this, 5) })
+            root.add(voiceRow, topMarginDp = 8)
+            root.add(Ui.switch(this).apply {
+                text = getString(R.string.extra_setting, Store.EXTRA_MINUTES)
+                textSize = 16f
+                isChecked = store.offerExtra
+                setOnCheckedChangeListener { _, checked -> store.offerExtra = checked }
+            }, topMarginDp = 8)
+            root.add(Ui.button(this, getString(R.string.theme, themeLabel(store.theme)), Ui.MUTED) { chooseTheme() }, topMarginDp = 8)
+        }
+
+        collapsible(root, "phone", getString(R.string.section_phone), "", defaultOpen = false) { root ->
+            root.add(Ui.button(this, getString(R.string.open_settings), Ui.MUTED) {
+                openSystem(Intent(Settings.ACTION_SETTINGS))
+            }, topMarginDp = 8)
+            if (Build.VERSION.SDK_INT >= 33) {
+                root.add(Ui.button(this, getString(R.string.language), Ui.MUTED) {
+                    openSystem(Intent(Settings.ACTION_APP_LOCALE_SETTINGS, Uri.parse("package:$packageName")))
+                }, topMarginDp = 8)
+            }
+        }
 
         // Update: downloads the newest PlayTime.apk in the browser; tapping it installs over this version.
-        root.add(section(getString(R.string.section_update)), topMarginDp = 24)
         val version = packageManager.getPackageInfo(packageName, 0).versionName ?: "?"
-        root.add(Ui.text(this, getString(R.string.version_label, version), 15f, Ui.MUTED), topMarginDp = 4)
-        root.add(Ui.button(this, getString(R.string.update_app)) {
-            openSystem(Intent(Intent.ACTION_VIEW, Uri.parse(UPDATE_URL)))
-        }, topMarginDp = 8)
-        root.add(Ui.text(this, getString(R.string.update_hint), 14f, Ui.MUTED), topMarginDp = 4)
+        collapsible(root, "update", getString(R.string.section_update), getString(R.string.version_label, version), defaultOpen = false) { root ->
+            root.add(Ui.button(this, getString(R.string.update_app)) {
+                openSystem(Intent(Intent.ACTION_VIEW, Uri.parse(UPDATE_URL)))
+            }, topMarginDp = 8)
+            root.add(Ui.text(this, getString(R.string.update_hint), 14f, Ui.MUTED), topMarginDp = 4)
+        }
+    }
+
+    /**
+     * A section that opens and closes with a tap; whether it is open is remembered on this phone.
+     * [body] gets the section's own column as `root`.
+     */
+    private fun collapsible(
+        root: LinearLayout,
+        key: String,
+        title: String,
+        summary: String,
+        defaultOpen: Boolean,
+        body: (LinearLayout) -> Unit,
+    ) {
+        val open = store.sectionOpen(key, defaultOpen)
+        val header = Ui.card(this)
+        val top = Ui.row(this)
+        top.addView(Ui.text(this, title, 20f, Ui.ACCENT, bold = true), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        top.addView(Ui.text(this, if (open) "▾" else "▸", 22f, Ui.MUTED, bold = true))
+        header.add(top)
+        if (summary.isNotEmpty()) header.add(Ui.text(this, summary, 14f, Ui.MUTED), topMarginDp = 2)
+        header.setOnClickListener {
+            store.setSectionOpen(key, !open)
+            render()
+        }
+        root.add(header, topMarginDp = 16)
+        if (open) {
+            val content = Ui.column(this)
+            body(content)
+            root.add(content, topMarginDp = 4)
+        }
     }
 
     private fun permissionRow(title: String, hint: String, granted: Boolean, turnOn: () -> Unit): LinearLayout {
