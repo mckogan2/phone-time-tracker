@@ -442,6 +442,7 @@ class GuardService : Service() {
         val text = resources.getQuantityString(R.plurals.warn_left, minutes, kid.name, minutes)
         Toast.makeText(this, text, Toast.LENGTH_LONG).show()
         if (store.voiceReminders) Voice.play(this, minutes)
+        Voice.buzz(this)
     }
 
     private fun notificationTitle(): String {

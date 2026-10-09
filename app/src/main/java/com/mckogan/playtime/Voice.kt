@@ -5,6 +5,8 @@ import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
+import android.os.VibrationEffect
+import android.os.Vibrator
 
 /**
  * Spoken "N more minutes" reminders for the kids, from short recordings built into the app
@@ -40,7 +42,9 @@ object Voice {
             .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
             .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
             .build()
-        val focus = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+        // Ask other sound (game music, video ads) to pause while the voice speaks, not just get quieter:
+        // many ad players ignore "duck" but do pause for a transient focus loss.
+        val focus = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
             .setAudioAttributes(attributes)
             .build()
         runCatching {
@@ -54,6 +58,15 @@ object Voice {
                 it.release()
             }
             mp.start()
+        }
+    }
+
+    /** Two short buzzes, so a reminder is felt even when an ad or loud game drowns out the voice. */
+    fun buzz(context: Context) {
+        runCatching {
+            val vibrator = context.applicationContext.getSystemService(Vibrator::class.java) ?: return
+            if (!vibrator.hasVibrator()) return
+            vibrator.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 200, 150, 200), -1))
         }
     }
 
