@@ -414,7 +414,13 @@ class Store(context: Context) {
         set(value) = prefs.edit().putBoolean(KEY_OFFER_EXTRA, value).apply()
 
     /** Extra time for today only. */
-    fun addBonus(kidId: String, minutes: Int) = adjust(kidId, -minutes * MINUTE_MS)
+    /** Gives [minutes] (or takes them away when negative). Taking away stops at zero: the balance never goes below 0. */
+    fun addBonus(kidId: String, minutes: Int) {
+        val kid = kid(kidId) ?: return
+        val change = minutes * MINUTE_MS
+        val allowed = if (change < 0) change.coerceAtLeast(-remainingMs(kid).coerceAtLeast(0L)) else change
+        if (allowed != 0L) adjust(kidId, -allowed)
+    }
 
     fun resetToday(kidId: String) = adjust(kidId, -usedMs(kidId))
 
