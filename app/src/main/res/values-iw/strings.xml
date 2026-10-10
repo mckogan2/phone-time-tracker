@@ -188,6 +188,8 @@
     <string name="value_connected">מחובר</string>
     <string name="value_not_connected">לא מחובר</string>
     <string name="settings_back">‹ הגדרות</string>
+    <string name="row_from">התחלה</string>
+    <string name="row_to">סיום</string>
     <string name="kid_left">נשארו %1$s</string>
     <string name="kid_today">%1$d מתוך %2$d דקות היום</string>
     <string name="game_auto">זוהה אוטומטית</string>

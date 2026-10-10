@@ -221,83 +221,62 @@ class ParentActivity : Activity() {
         for (kid in store.kids()) root.add(kidCard(kid, active?.id == kid.id), topMarginDp = 10)
         root.add(Ui.button(this, getString(R.string.add_child), Ui.MUTED) { editKid(null) }, topMarginDp = 10)
 
-        root.add(section(getString(R.string.section_protection)), topMarginDp = 24)
         root.add(Ui.text(this, getString(R.string.protection_hint), 14f, Ui.MUTED), topMarginDp = 4)
-        val modes = listOf(
-            Store.LOCK_OFF to R.string.lock_off,
-            Store.LOCK_PICTURE to R.string.lock_picture,
-            Store.LOCK_NUMBER to R.string.lock_number,
-            Store.LOCK_PARENT to R.string.lock_parent,
-        )
-        val group = RadioGroup(this)
-        for ((i, pair) in modes.withIndex()) {
-            group.addView(RadioButton(this).apply {
-                id = i + 1
-                text = getString(pair.second)
-                textSize = 16f
-                isChecked = store.kidLockMode == pair.first
-            })
+        settingsGroup(root, R.string.section_protection) { group ->
+            for ((mode, labelRes, icon) in listOf(
+                Triple(Store.LOCK_OFF, R.string.lock_off, "🔓"),
+                Triple(Store.LOCK_PICTURE, R.string.lock_picture, "🧩"),
+                Triple(Store.LOCK_NUMBER, R.string.lock_number, "🔢"),
+                Triple(Store.LOCK_PARENT, R.string.lock_parent, "🔒"),
+            )) {
+                settingsRow(group, icon, getString(labelRes), if (store.kidLockMode == mode) "✓" else "") {
+                    store.kidLockMode = mode
+                    render()
+                }
+            }
         }
-        group.setOnCheckedChangeListener { _, checkedId ->
-            store.kidLockMode = modes[checkedId - 1].first
-            render()
-        }
-        root.add(group, topMarginDp = 4)
     }
 
     /** One line per child: minutes played today and on which games (all family phones). */
     private fun gamesTab(root: LinearLayout) {
-        root.add(section(getString(R.string.section_games)), topMarginDp = 20)
-        val detected = store.detectedGames(refresh = true)
-        root.add(Ui.switch(this).apply {
-            text = getString(R.string.auto_games)
-            textSize = 16f
-            isChecked = store.autoGames
-            setOnCheckedChangeListener { _, checked ->
-                store.autoGames = checked
+        settingsGroup(root, R.string.section_games) { group ->
+            settingsRow(group, "🔍", getString(R.string.auto_games), getString(if (store.autoGames) R.string.value_on else R.string.value_off)) {
+                store.autoGames = !store.autoGames
                 render()
             }
-        }, topMarginDp = 8)
-        root.add(
-            Ui.text(this, getString(R.string.auto_games_hint), 14f, Ui.MUTED),
-            topMarginDp = 4,
-        )
+            settingsRow(group, "🎮", getString(R.string.choose_games), store.games().size.toString()) { chooseGames() }
+        }
+        root.add(Ui.text(this, getString(R.string.auto_games_hint), 14f, Ui.MUTED), topMarginDp = 6)
         val timed = store.sortByRecentUse(store.games().map { it to label(it) }, { it.first }, { it.second })
         if (timed.isEmpty()) root.add(Ui.text(this, getString(R.string.no_games_timed), 16f, Ui.MUTED), topMarginDp = 8)
         for ((pkg, name) in timed) root.add(gameRow(pkg, name), topMarginDp = 8)
-        root.add(Ui.button(this, getString(R.string.choose_games)) { chooseGames() }, topMarginDp = 8)
 
         // Allowed hours: games are blocked outside them, even with time left.
-        root.add(section(getString(R.string.section_hours)), topMarginDp = 24)
-        root.add(Ui.switch(this).apply {
-            text = getString(R.string.hours_switch)
-            textSize = 16f
-            isChecked = store.hoursEnabled
-            setOnCheckedChangeListener { _, checked ->
-                store.hoursEnabled = checked
+        settingsGroup(root, R.string.section_hours) { group ->
+            settingsRow(group, "⏰", getString(R.string.hours_switch), getString(if (store.hoursEnabled) R.string.value_on else R.string.value_off)) {
+                store.hoursEnabled = !store.hoursEnabled
                 render()
             }
-        }, topMarginDp = 8)
-        if (store.hoursEnabled) {
-            val times = Ui.row(this)
-            times.addView(Ui.button(this, getString(R.string.hours_from, Ui.formatTimeOfDay(this, store.hoursFrom)), Ui.MUTED, 15f) {
-                pickTime(store.hoursFrom) { store.hoursFrom = it }
-            }, weighted())
-            times.addView(Ui.button(this, getString(R.string.hours_to, Ui.formatTimeOfDay(this, store.hoursTo)), Ui.MUTED, 15f) {
-                pickTime(store.hoursTo) { store.hoursTo = it }
-            }, weighted(leftMarginDp = 8))
-            root.add(times, topMarginDp = 8)
+            if (store.hoursEnabled) {
+                settingsRow(group, "▶️", getString(R.string.row_from), Ui.formatTimeOfDay(this, store.hoursFrom)) {
+                    pickTime(store.hoursFrom) { store.hoursFrom = it }
+                }
+                settingsRow(group, "⏹", getString(R.string.row_to), Ui.formatTimeOfDay(this, store.hoursTo)) {
+                    pickTime(store.hoursTo) { store.hoursTo = it }
+                }
+            }
         }
-        root.add(Ui.text(this, getString(R.string.hours_hint), 14f, Ui.MUTED), topMarginDp = 4)
+        root.add(Ui.text(this, getString(R.string.hours_hint), 14f, Ui.MUTED), topMarginDp = 6)
 
         // The parent's own apps (this phone only): "who's using? → 15/30 → want more?" friction.
-        root.add(section(getString(R.string.section_my_apps)), topMarginDp = 24)
-        root.add(Ui.text(this, getString(R.string.my_apps_hint), 14f, Ui.MUTED), topMarginDp = 4)
+        settingsGroup(root, R.string.section_my_apps) { group ->
+            settingsRow(group, "📱", getString(R.string.my_apps_choose), store.myApps().size.toString()) { chooseMyApps() }
+        }
+        root.add(Ui.text(this, getString(R.string.my_apps_hint), 14f, Ui.MUTED), topMarginDp = 6)
         val mine = store.sortByRecentUse(store.myApps().map { it to label(it) }, { it.first }, { it.second })
         if (mine.isNotEmpty()) {
             root.add(Ui.text(this, mine.joinToString("\n") { "📱 ${it.second}" }, 16f), topMarginDp = 8)
         }
-        root.add(Ui.button(this, getString(R.string.my_apps_choose), Ui.MUTED) { chooseMyApps() }, topMarginDp = 8)
     }
 
     private fun settingsTab(root: LinearLayout, guardOn: Boolean) {

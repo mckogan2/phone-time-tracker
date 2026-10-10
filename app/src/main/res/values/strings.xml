@@ -184,6 +184,8 @@
     <string name="value_connected">Connected</string>
     <string name="value_not_connected">Not connected</string>
     <string name="settings_back">‹ Settings</string>
+    <string name="row_from">From</string>
+    <string name="row_to">To</string>
     <string name="kid_left">%1$s left</string>
     <string name="kid_today">%1$d of %2$d min today</string>
     <string name="game_auto">Found automatically</string>
