@@ -186,7 +186,6 @@
     <string name="settings_back">‹ Settings</string>
     <string name="row_from">From</string>
     <string name="row_to">To</string>
-    <string name="adjust_done">%1$s: %2$s, %3$s left</string>
     <string name="refresh_done">Time updated</string>
     <string name="refresh_time">Refresh time</string>
     <string name="bonus_plus">+5 min</string>

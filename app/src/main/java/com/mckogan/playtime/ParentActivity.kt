@@ -674,12 +674,6 @@ class ParentActivity : Activity() {
         store.addBonus(kid.id, minutes)
         Ui.tick(this)
         Ui.bounce(view)
-        val change = (if (minutes > 0) "+" else "−") + Math.abs(minutes) + " min"
-        Toast.makeText(
-            this,
-            getString(R.string.adjust_done, kid.name, change, Ui.formatMinutes(this, store.remainingMs(kid))),
-            Toast.LENGTH_SHORT,
-        ).show()
         // Redraw after the bounce has played, so the change is visible on the button first.
         window.decorView.postDelayed({ render() }, 150)
     }
@@ -711,6 +705,17 @@ class ParentActivity : Activity() {
             LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
         )
         card.add(header)
+        val remaining = store.remainingMs(kid)
+        card.add(
+            Ui.text(
+                this,
+                if (remaining > 0) getString(R.string.time_left, Ui.formatMinutes(this, remaining)) else getString(R.string.done_today),
+                16f,
+                Ui.MUTED,
+                bold = true,
+            ),
+            topMarginDp = 6,
+        )
         if (store.missingSecret(kid)) {
             card.add(Ui.text(this, getString(R.string.no_secret_set), 14f, Ui.DANGER), topMarginDp = 6)
         }
@@ -726,8 +731,8 @@ class ParentActivity : Activity() {
                 maxLines = 1
             }
 
-        icons.addView(icon("➕", getString(R.string.bonus_plus), Ui.ACCENT) { view -> adjustTime(kid, view, 5) }, weighted())
-        icons.addView(icon("➖", getString(R.string.bonus_minus), Ui.TRACK) { view -> adjustTime(kid, view, -5) }, weighted(leftMarginDp = 8))
+        icons.addView(icon("+5", getString(R.string.bonus_plus), Ui.ACCENT) { view -> adjustTime(kid, view, 5) }, weighted())
+        icons.addView(icon("−5", getString(R.string.bonus_minus), Ui.TRACK) { view -> adjustTime(kid, view, -5) }, weighted(leftMarginDp = 8))
         icons.addView(icon("✏️", getString(R.string.edit), Ui.TRACK) { editKid(kid) }, weighted(leftMarginDp = 8))
         if (playing) {
             icons.addView(icon("⏹️", getString(R.string.stop_now), Ui.TRACK) {
