@@ -92,8 +92,11 @@ class GuardService : Service() {
         notifications = getSystemService(NotificationManager::class.java)!!
         usage = getSystemService(UsageStatsManager::class.java)!!
         windows = getSystemService(WindowManager::class.java)!!
+        // Quiet channel: the guard's notice stays out of the status bar. Android won't change an existing
+        // channel's importance, so the old one is deleted and replaced under a new id.
+        notifications.deleteNotificationChannel(OLD_CHANNEL_ID)
         notifications.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, getString(R.string.channel_name), NotificationManager.IMPORTANCE_LOW)
+            NotificationChannel(CHANNEL_ID, getString(R.string.channel_name), NotificationManager.IMPORTANCE_MIN)
         )
         notifications.createNotificationChannel(
             NotificationChannel(MY_APPS_CHANNEL_ID, getString(R.string.my_apps_channel), NotificationManager.IMPORTANCE_LOW)
@@ -552,7 +555,8 @@ class GuardService : Service() {
         private const val RELAUNCH_MS = 1_500L
         private const val AWAY_PAUSE_MS = 5 * Store.MINUTE_MS
         private val WARN_AT_MINUTES = intArrayOf(10, 5, 1)
-        private const val CHANNEL_ID = "game_time"
+        private const val CHANNEL_ID = "guard_quiet"
+        private const val OLD_CHANNEL_ID = "game_time"
         private const val NOTIFICATION_ID = 1
         private const val MY_APPS_CHANNEL_ID = "my_apps"
         private const val MY_APP_NOTIFICATION_BASE = 1000
