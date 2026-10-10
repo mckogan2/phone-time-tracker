@@ -166,6 +166,8 @@
     <string name="use_fingerprint">טביעת אצבע במקום קוד</string>
     <string name="voice_reminders">🔊 תזכורות קוליות (10, 5, 1 דק׳)</string>
     <string name="voice_try">▶ נסה</string>
+    <string name="bonus_plus">+5 דק׳</string>
+    <string name="bonus_minus">−5 דק׳</string>
     <string name="kid_left">נשארו %1$s</string>
     <string name="kid_today">%1$d מתוך %2$d דקות היום</string>
     <string name="game_auto">זוהה אוטומטית</string>

@@ -643,10 +643,14 @@ class ParentActivity : Activity() {
                 maxLines = 1
             }
 
-        icons.addView(icon("➕", getString(R.string.bonus_15), Ui.ACCENT) {
-            store.addBonus(kid.id, 15)
+        icons.addView(icon("➕", getString(R.string.bonus_plus), Ui.ACCENT) {
+            store.addBonus(kid.id, 5)
             render()
         }, weighted())
+        icons.addView(icon("➖", getString(R.string.bonus_minus), Ui.TRACK) {
+            store.addBonus(kid.id, -5)
+            render()
+        }, weighted(leftMarginDp = 8))
         icons.addView(icon("✏️", getString(R.string.edit), Ui.TRACK) { editKid(kid) }, weighted(leftMarginDp = 8))
         if (playing) {
             icons.addView(icon("⏹️", getString(R.string.stop_now), Ui.TRACK) {
@@ -698,9 +702,11 @@ class ParentActivity : Activity() {
             }
             for (animal in Store.SECRET_PICTURES) {
                 val cell = Ui.text(this, animal, 26f, center = true).apply {
+                    Ui.pressable(this@ParentActivity, this)
                     setOnClickListener {
                         picture = animal
                         paint()
+                        Ui.bounce(this)
                     }
                 }
                 cells += cell
