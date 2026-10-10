@@ -119,6 +119,14 @@ class MainActivity : Activity() {
 
         root.add(Ui.text(this, title, 30f, bold = true, center = true))
         root.add(Ui.text(this, subtitle, 16f, Ui.MUTED, center = true), topMarginDp = 4)
+        // Refresh: the time on this screen only updates when it is drawn again.
+        root.add(Ui.button(this, "🔄", Ui.TRACK, 22f) {
+            Sync.flush(this)
+            render()
+        }.apply {
+            contentDescription = getString(R.string.refresh_time)
+            setPadding(dp(20), dp(10), dp(20), dp(10))
+        }, topMarginDp = 12)
 
         if (!GuardService.isReady(this)) {
             val banner = Ui.card(this, Ui.WARN_BG)
