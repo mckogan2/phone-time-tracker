@@ -40,18 +40,21 @@ class ParentActivity : Activity() {
 
     /** Which tab is open (null = pick one on first render). */
     private var tab: String? = null
-    private var showPermissions = false
+    /** Which Settings page is open (null = the Settings home). */
+    private var settingsPage: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Ui.applyTheme(this)
         super.onCreate(savedInstanceState)
         store = Store(this)
         tab = savedInstanceState?.getString(STATE_TAB)
+        settingsPage = savedInstanceState?.getString(STATE_PAGE)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putString(STATE_TAB, tab)
+        outState.putString(STATE_PAGE, settingsPage)
     }
 
     override fun onRestart() {
@@ -199,6 +202,7 @@ class ParentActivity : Activity() {
             bar.addView(
                 Ui.button(this, getString(label), if (selected) Ui.ACCENT else Ui.TRACK, 15f) {
                     tab = id
+                    settingsPage = null
                     render()
                 }.apply {
                     if (!selected) setTextColor(Ui.TEXT)
@@ -303,162 +307,236 @@ class ParentActivity : Activity() {
             checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         val battery = getSystemService(PowerManager::class.java)!!.isIgnoringBatteryOptimizations(packageName)
         val allSet = usage && overlay && notif && battery
+        val pinOn = store.protectSettings
+        val synced = store.familyId != null
 
-        collapsible(
-            root, "permissions", getString(R.string.section_permissions),
-            if (allSet) getString(R.string.all_set) else getString(R.string.guard_off),
-            defaultOpen = !allSet,
-        ) { root ->
-            if (allSet && !showPermissions) {
-                // Everything is on: one line, tap to see the details.
-                root.add(Ui.text(this, getString(R.string.all_set), 16f, bold = true).apply {
-                    setOnClickListener {
-                        showPermissions = true
-                        render()
-                    }
-                }, topMarginDp = 8)
-            } else {
-                root.add(
-                    Ui.text(
-                        this,
-                        getString(if (guardOn) R.string.guard_on else R.string.guard_off),
-                        16f,
-                        if (guardOn) Ui.TEXT else Ui.DANGER,
-                        bold = true,
-                    ),
-                    topMarginDp = 8,
-                )
-                root.add(
-                    permissionRow(getString(R.string.perm_usage), getString(R.string.perm_usage_hint), usage) {
-                        openSystem(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
-                    },
-                    topMarginDp = 10,
-                )
-                root.add(
-                    permissionRow(getString(R.string.perm_overlay), getString(R.string.perm_overlay_hint), overlay) {
-                        openSystem(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
-                    },
-                    topMarginDp = 10,
-                )
-                root.add(
-                    permissionRow(getString(R.string.perm_notif), getString(R.string.perm_notif_hint), notif) {
-                        openSystem(
-                            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-                        )
-                    },
-                    topMarginDp = 10,
-                )
-                root.add(
-                    permissionRow(getString(R.string.perm_battery), getString(R.string.perm_battery_hint), battery) {
-                        openSystem(
-                            Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName"))
-                        )
-                    },
-                    topMarginDp = 10,
-                )
+        root.add(statusCard(guardOn, pinOn, synced, allSet), topMarginDp = 16)
+
+        val page = settingsPage
+        if (page == null) {
+            settingsHub(root, allSet, pinOn, synced)
+            return
+        }
+        root.add(Ui.button(this, getString(R.string.settings_back), Ui.MUTED, 16f) {
+            settingsPage = null
+            render()
+        }, topMarginDp = 16)
+        when (page) {
+            PAGE_PERMISSIONS -> permissionsPage(root, guardOn, usage, overlay, notif, battery)
+            PAGE_SECURITY -> securityPage(root)
+            PAGE_SYNC -> {
+                pageTitle(root, R.string.section_sync)
+                addSyncSection(root)
             }
-        }
-
-        collapsible(
-            root, "sync", getString(R.string.section_sync),
-            getString(if (store.familyId != null) R.string.sum_connected else R.string.sum_not_connected),
-            defaultOpen = false,
-        ) { root ->
-            addSyncSection(root)
-        }
-
-        collapsible(
-            root, "security", getString(R.string.section_security),
-            getString(if (store.protectSettings) R.string.sum_pin_on else R.string.sum_pin_off),
-            defaultOpen = false,
-        ) { root ->
-            root.add(Ui.switch(this).apply {
-                text = getString(R.string.lock_settings)
-                textSize = 16f
-                isChecked = store.protectSettings
-                setOnCheckedChangeListener { _, checked -> store.protectSettings = checked }
-            }, topMarginDp = 8)
-            root.add(Ui.switch(this).apply {
-                text = getString(R.string.use_fingerprint)
-                textSize = 16f
-                isChecked = store.useFingerprint
-                setOnCheckedChangeListener { _, checked -> store.useFingerprint = checked }
-            }, topMarginDp = 8)
-            root.add(Ui.button(this, getString(R.string.change_pin), Ui.MUTED) {
-                keepOpen = true
-                startActivity(Intent(this, PinActivity::class.java).putExtra(PinActivity.EXTRA_MODE, PinActivity.MODE_CHANGE))
-            }, topMarginDp = 8)
-        }
-
-        collapsible(root, "voice", getString(R.string.section_voice), "", defaultOpen = false) { root ->
-            val voiceRow = Ui.row(this)
-            voiceRow.addView(Ui.switch(this).apply {
-                text = getString(R.string.voice_reminders)
-                textSize = 16f
-                isChecked = store.voiceReminders
-                setOnCheckedChangeListener { _, checked -> store.voiceReminders = checked }
-            }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-            voiceRow.addView(Ui.button(this, getString(R.string.voice_try), Ui.MUTED, 15f) { Voice.play(this, 5) })
-            root.add(voiceRow, topMarginDp = 8)
-            root.add(Ui.switch(this).apply {
-                text = getString(R.string.extra_setting, Store.EXTRA_MINUTES)
-                textSize = 16f
-                isChecked = store.offerExtra
-                setOnCheckedChangeListener { _, checked -> store.offerExtra = checked }
-            }, topMarginDp = 8)
-            root.add(Ui.button(this, getString(R.string.theme, themeLabel(store.theme)), Ui.MUTED) { chooseTheme() }, topMarginDp = 8)
-        }
-
-        collapsible(root, "phone", getString(R.string.section_phone), "", defaultOpen = false) { root ->
-            root.add(Ui.button(this, getString(R.string.open_settings), Ui.MUTED) {
-                openSystem(Intent(Settings.ACTION_SETTINGS))
-            }, topMarginDp = 8)
-            if (Build.VERSION.SDK_INT >= 33) {
-                root.add(Ui.button(this, getString(R.string.language), Ui.MUTED) {
-                    openSystem(Intent(Settings.ACTION_APP_LOCALE_SETTINGS, Uri.parse("package:$packageName")))
-                }, topMarginDp = 8)
-            }
-        }
-
-        // Update: downloads the newest PlayTime.apk in the browser; tapping it installs over this version.
-        val version = packageManager.getPackageInfo(packageName, 0).versionName ?: "?"
-        collapsible(root, "update", getString(R.string.section_update), getString(R.string.version_label, version), defaultOpen = false) { root ->
-            root.add(Ui.button(this, getString(R.string.update_app)) {
-                openSystem(Intent(Intent.ACTION_VIEW, Uri.parse(UPDATE_URL)))
-            }, topMarginDp = 8)
-            root.add(Ui.text(this, getString(R.string.update_hint), 14f, Ui.MUTED), topMarginDp = 4)
+            PAGE_VOICE -> voicePage(root)
+            PAGE_PHONE -> phonePage(root)
+            PAGE_UPDATE -> updatePage(root)
         }
     }
 
-    /**
-     * A section that opens and closes with a tap; whether it is open is remembered on this phone.
-     * [body] gets the section's own column as `root`.
-     */
-    private fun collapsible(
-        root: LinearLayout,
-        key: String,
-        title: String,
-        summary: String,
-        defaultOpen: Boolean,
-        body: (LinearLayout) -> Unit,
-    ) {
-        val open = store.sectionOpen(key, defaultOpen)
-        val header = Ui.card(this)
-        val top = Ui.row(this)
-        top.addView(Ui.text(this, title, 20f, Ui.ACCENT, bold = true), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        top.addView(Ui.text(this, if (open) "▾" else "▸", 22f, Ui.MUTED, bold = true))
-        header.add(top)
-        if (summary.isNotEmpty()) header.add(Ui.text(this, summary, 14f, Ui.MUTED), topMarginDp = 2)
-        header.setOnClickListener {
-            store.setSectionOpen(key, !open)
-            render()
+    /** At-a-glance summary at the top of Settings: is the guard on, is the PIN set, is it synced, are permissions OK. */
+    private fun statusCard(guardOn: Boolean, pinOn: Boolean, synced: Boolean, allSet: Boolean): LinearLayout {
+        val card = Ui.card(this)
+        card.add(Ui.text(
+            this,
+            getString(if (guardOn) R.string.status_on else R.string.status_attention),
+            22f,
+            if (guardOn) Ui.TEXT else Ui.DANGER,
+            bold = true,
+        ))
+        val chips = listOf(
+            getString(if (guardOn) R.string.chip_guard_on else R.string.chip_guard_off) to guardOn,
+            getString(if (pinOn) R.string.chip_pin_on else R.string.chip_pin_off) to pinOn,
+            getString(if (synced) R.string.chip_sync_on else R.string.chip_sync_off) to synced,
+            getString(if (allSet) R.string.chip_perms_on else R.string.chip_perms_off) to allSet,
+        )
+        for (pair in chips.chunked(2)) {
+            val line = Ui.row(this)
+            pair.forEachIndexed { i, (label, ok) ->
+                line.addView(chip(label, ok), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    if (i > 0) marginStart = dp(8)
+                })
+            }
+            card.add(line, topMarginDp = 10)
         }
-        root.add(header, topMarginDp = 16)
-        if (open) {
-            val content = Ui.column(this)
-            body(content)
-            root.add(content, topMarginDp = 4)
+        return card
+    }
+
+    private fun chip(label: String, ok: Boolean): TextView {
+        val color = if (ok) OK_GREEN else Ui.DANGER
+        return Ui.text(this, label, 14f, color, bold = true, center = true).apply {
+            setPadding(dp(8), dp(10), dp(8), dp(10))
+            background = Ui.rounded(Ui.blend(color, Ui.CARD, 0.18f), 999, this@ParentActivity)
         }
+    }
+
+    /** The Settings home: grouped rows, each showing its current value. Tapping one opens its page. */
+    private fun settingsHub(root: LinearLayout, allSet: Boolean, pinOn: Boolean, synced: Boolean) {
+        val version = packageManager.getPackageInfo(packageName, 0).versionName ?: "?"
+        settingsGroup(root, R.string.group_protection) { group ->
+            settingsRow(group, "🔒", getString(R.string.row_pin), getString(if (pinOn) R.string.value_on else R.string.value_off)) {
+                openPage(PAGE_SECURITY)
+            }
+            settingsRow(
+                group, "🛡", getString(R.string.section_permissions),
+                getString(if (allSet) R.string.value_all_set else R.string.value_needs_setup),
+            ) { openPage(PAGE_PERMISSIONS) }
+        }
+        settingsGroup(root, R.string.group_sync_sound) { group ->
+            settingsRow(
+                group, "☁️", getString(R.string.section_sync),
+                getString(if (synced) R.string.value_connected else R.string.value_not_connected),
+            ) { openPage(PAGE_SYNC) }
+            settingsRow(group, "🔊", getString(R.string.row_voice), getString(if (store.voiceReminders) R.string.value_on else R.string.value_off)) {
+                openPage(PAGE_VOICE)
+            }
+            settingsRow(group, "🎨", getString(R.string.row_theme), themeLabel(store.theme)) { chooseTheme() }
+        }
+        settingsGroup(root, R.string.group_phone) { group ->
+            settingsRow(group, "📱", getString(R.string.section_phone), "") { openPage(PAGE_PHONE) }
+            settingsRow(group, "🔄", getString(R.string.section_update), getString(R.string.version_label, version)) {
+                openPage(PAGE_UPDATE)
+            }
+        }
+    }
+
+    private fun openPage(page: String) {
+        settingsPage = page
+        render()
+    }
+
+    private fun settingsGroup(root: LinearLayout, titleRes: Int, rows: (LinearLayout) -> Unit) {
+        root.add(Ui.text(this, getString(titleRes), 13f, Ui.MUTED, bold = true), topMarginDp = 22)
+        val group = Ui.column(this).apply { background = Ui.rounded(Ui.CARD, 20, this@ParentActivity) }
+        rows(group)
+        root.add(group, topMarginDp = 8)
+    }
+
+    private fun settingsRow(group: LinearLayout, icon: String, title: String, value: String, onClick: () -> Unit) {
+        if (group.childCount > 0) {
+            group.addView(View(this).apply { setBackgroundColor(Ui.TRACK) }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1)).apply {
+                marginStart = dp(62)
+            })
+        }
+        val row = Ui.row(this).apply {
+            setPadding(dp(14), dp(12), dp(14), dp(12))
+            setOnClickListener { onClick() }
+        }
+        row.addView(Ui.text(this, icon, 18f, center = true).apply {
+            background = Ui.rounded(Ui.TRACK, 10, this@ParentActivity)
+        }, LinearLayout.LayoutParams(dp(36), dp(36)).apply { marginEnd = dp(12) })
+        row.addView(Ui.text(this, title, 16f, bold = true), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        if (value.isNotEmpty()) row.addView(Ui.text(this, value, 15f, Ui.MUTED))
+        row.addView(Ui.text(this, "›", 20f, Ui.MUTED).apply { setPadding(dp(8), 0, 0, 0) })
+        group.addView(row)
+    }
+
+    private fun pageTitle(root: LinearLayout, titleRes: Int) {
+        root.add(Ui.text(this, getString(titleRes), 22f, Ui.ACCENT, bold = true), topMarginDp = 16)
+    }
+
+    private fun permissionsPage(root: LinearLayout, guardOn: Boolean, usage: Boolean, overlay: Boolean, notif: Boolean, battery: Boolean) {
+        pageTitle(root, R.string.section_permissions)
+        root.add(
+            Ui.text(
+                this,
+                getString(if (guardOn) R.string.guard_on else R.string.guard_off),
+                16f,
+                if (guardOn) Ui.TEXT else Ui.DANGER,
+                bold = true,
+            ),
+            topMarginDp = 8,
+        )
+        root.add(
+            permissionRow(getString(R.string.perm_usage), getString(R.string.perm_usage_hint), usage) {
+                openSystem(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+            },
+            topMarginDp = 10,
+        )
+        root.add(
+            permissionRow(getString(R.string.perm_overlay), getString(R.string.perm_overlay_hint), overlay) {
+                openSystem(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
+            },
+            topMarginDp = 10,
+        )
+        root.add(
+            permissionRow(getString(R.string.perm_notif), getString(R.string.perm_notif_hint), notif) {
+                openSystem(
+                    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                )
+            },
+            topMarginDp = 10,
+        )
+        root.add(
+            permissionRow(getString(R.string.perm_battery), getString(R.string.perm_battery_hint), battery) {
+                openSystem(
+                    Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName"))
+                )
+            },
+            topMarginDp = 10,
+        )
+    }
+
+    private fun securityPage(root: LinearLayout) {
+        pageTitle(root, R.string.section_security)
+        root.add(Ui.switch(this).apply {
+            text = getString(R.string.lock_settings)
+            textSize = 16f
+            isChecked = store.protectSettings
+            setOnCheckedChangeListener { _, checked -> store.protectSettings = checked }
+        }, topMarginDp = 8)
+        root.add(Ui.switch(this).apply {
+            text = getString(R.string.use_fingerprint)
+            textSize = 16f
+            isChecked = store.useFingerprint
+            setOnCheckedChangeListener { _, checked -> store.useFingerprint = checked }
+        }, topMarginDp = 8)
+        root.add(Ui.button(this, getString(R.string.change_pin), Ui.MUTED) {
+            keepOpen = true
+            startActivity(Intent(this, PinActivity::class.java).putExtra(PinActivity.EXTRA_MODE, PinActivity.MODE_CHANGE))
+        }, topMarginDp = 8)
+    }
+
+    private fun voicePage(root: LinearLayout) {
+        pageTitle(root, R.string.row_voice)
+        val voiceRow = Ui.row(this)
+        voiceRow.addView(Ui.switch(this).apply {
+            text = getString(R.string.voice_reminders)
+            textSize = 16f
+            isChecked = store.voiceReminders
+            setOnCheckedChangeListener { _, checked -> store.voiceReminders = checked }
+        }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        voiceRow.addView(Ui.button(this, getString(R.string.voice_try), Ui.MUTED, 15f) { Voice.play(this, 5) })
+        root.add(voiceRow, topMarginDp = 8)
+        root.add(Ui.switch(this).apply {
+            text = getString(R.string.extra_setting, Store.EXTRA_MINUTES)
+            textSize = 16f
+            isChecked = store.offerExtra
+            setOnCheckedChangeListener { _, checked -> store.offerExtra = checked }
+        }, topMarginDp = 8)
+    }
+
+    private fun phonePage(root: LinearLayout) {
+        pageTitle(root, R.string.section_phone)
+        root.add(Ui.button(this, getString(R.string.open_settings), Ui.MUTED) {
+            openSystem(Intent(Settings.ACTION_SETTINGS))
+        }, topMarginDp = 8)
+        if (Build.VERSION.SDK_INT >= 33) {
+            root.add(Ui.button(this, getString(R.string.language), Ui.MUTED) {
+                openSystem(Intent(Settings.ACTION_APP_LOCALE_SETTINGS, Uri.parse("package:$packageName")))
+            }, topMarginDp = 8)
+        }
+    }
+
+    // Update: downloads the newest PlayTime.apk in the browser; tapping it installs over this version.
+    private fun updatePage(root: LinearLayout) {
+        pageTitle(root, R.string.section_update)
+        val version = packageManager.getPackageInfo(packageName, 0).versionName ?: "?"
+        root.add(Ui.text(this, getString(R.string.version_label, version), 15f, Ui.MUTED), topMarginDp = 8)
+        root.add(Ui.button(this, getString(R.string.update_app)) {
+            openSystem(Intent(Intent.ACTION_VIEW, Uri.parse(UPDATE_URL)))
+        }, topMarginDp = 8)
+        root.add(Ui.text(this, getString(R.string.update_hint), 14f, Ui.MUTED), topMarginDp = 4)
     }
 
     private fun permissionRow(title: String, hint: String, granted: Boolean, turnOn: () -> Unit): LinearLayout {
@@ -831,6 +909,14 @@ class ParentActivity : Activity() {
         private const val TAB_SETTINGS = "settings"
         private const val TAB_STATS = "stats"
         private const val STATE_TAB = "tab"
+        private const val STATE_PAGE = "settings_page"
+        private const val PAGE_PERMISSIONS = "permissions"
+        private const val PAGE_SECURITY = "security"
+        private const val PAGE_SYNC = "sync"
+        private const val PAGE_VOICE = "voice"
+        private const val PAGE_PHONE = "phone"
+        private const val PAGE_UPDATE = "update"
+        private val OK_GREEN = 0xFF2E9E5B.toInt()
         private val THEMES = listOf(Ui.THEME_SYSTEM, Ui.THEME_LIGHT, Ui.THEME_DARK)
         private const val REQUEST_PHOTO = 7
 

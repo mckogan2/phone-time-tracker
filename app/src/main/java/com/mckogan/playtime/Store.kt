@@ -308,11 +308,6 @@ class Store(context: Context) {
         get() = prefs.getBoolean(KEY_VOICE, true)
         set(value) = prefs.edit().putBoolean(KEY_VOICE, value).apply()
 
-    /** Whether a parent-screen section is open on this phone. */
-    fun sectionOpen(key: String, defaultOpen: Boolean): Boolean = prefs.getBoolean("ui_open_$key", defaultOpen)
-
-    fun setSectionOpen(key: String, open: Boolean) = prefs.edit().putBoolean("ui_open_$key", open).apply()
-
     /** Light, dark, or follow the phone ([Ui.THEME_SYSTEM]). This phone only. */
     var theme: String
         get() = prefs.getString(KEY_THEME, null) ?: Ui.THEME_SYSTEM
