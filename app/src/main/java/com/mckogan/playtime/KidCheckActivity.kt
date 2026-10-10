@@ -5,6 +5,8 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.view.Gravity
 import android.widget.GridLayout
 import android.widget.ScrollView
@@ -26,6 +28,7 @@ class KidCheckActivity : Activity() {
     private lateinit var dotsView: TextView
     private val handler = Handler(Looper.getMainLooper())
     private var entered = ""
+    private var animalGrid: GridLayout? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Ui.applyTheme(this)
@@ -83,9 +86,11 @@ class KidCheckActivity : Activity() {
         val secret = kid.secretPicture!!
         val choices = (Store.SECRET_PICTURES - secret + secret).shuffled()
         val grid = GridLayout(this).apply { columnCount = 4 }
+        animalGrid = grid
         for (animal in choices) {
             val cell = Ui.text(this, animal, 36f, center = true).apply {
                 background = Ui.rounded(Ui.CARD, 18, this@KidCheckActivity)
+                Ui.pressable(this@KidCheckActivity, this)
                 setOnClickListener { answer(animal == secret) }
             }
             val lp = GridLayout.LayoutParams().apply {
@@ -124,7 +129,19 @@ class KidCheckActivity : Activity() {
         } else {
             store.kidFailed(kid.id)
             messageView.text = getString(R.string.check_wrong)
+            if (mode == Store.LOCK_PICTURE) {
+                animalGrid?.let { Ui.shake(it, dp(12).toFloat()) }
+                buzz()
+            }
             if (lockedForMs() > 0) tickLockout()
+        }
+    }
+
+    /** One short buzz, for a wrong animal. */
+    private fun buzz() {
+        runCatching {
+            val vibrator = getSystemService(Vibrator::class.java) ?: return
+            if (vibrator.hasVibrator()) vibrator.vibrate(VibrationEffect.createOneShot(250, VibrationEffect.DEFAULT_AMPLITUDE))
         }
     }
 

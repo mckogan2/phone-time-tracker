@@ -212,6 +212,43 @@ object Ui {
         return view
     }
 
+    /** Gives a view the standard press ripple, so a tap is visible. */
+    fun pressable(context: Context, view: View) {
+        val attrs = context.obtainStyledAttributes(intArrayOf(android.R.attr.selectableItemBackgroundBorderless))
+        view.foreground = attrs.getDrawable(0)
+        attrs.recycle()
+    }
+
+    /** A quick press-in and bounce back, to show a choice was made. */
+    fun bounce(view: View) {
+        view.animate().cancel()
+        view.animate().scaleX(0.9f).scaleY(0.9f).setDuration(80).withEndAction {
+            view.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
+        }.start()
+    }
+
+    /** A very short buzz: "it worked". Silent on phones without a vibrator. */
+    fun tick(context: Context) {
+        runCatching {
+            val vibrator = context.getSystemService(android.os.Vibrator::class.java) ?: return
+            if (vibrator.hasVibrator()) {
+                vibrator.vibrate(android.os.VibrationEffect.createOneShot(40, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+            }
+        }
+    }
+
+    /** Three quick side-to-side moves, for a wrong answer. */
+    fun shake(view: View, distancePx: Float) {
+        view.animate().cancel()
+        view.animate().translationX(distancePx).setDuration(60).withEndAction {
+            view.animate().translationX(-distancePx).setDuration(60).withEndAction {
+                view.animate().translationX(distancePx / 2).setDuration(60).withEndAction {
+                    view.animate().translationX(0f).setDuration(60).start()
+                }.start()
+            }.start()
+        }.start()
+    }
+
     /** "12:05" style countdown, never negative. */
     fun formatClock(ms: Long): String {
         val totalSec = (ms.coerceAtLeast(0L) + 999) / 1000

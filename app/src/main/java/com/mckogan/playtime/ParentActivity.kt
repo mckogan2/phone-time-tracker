@@ -221,20 +221,30 @@ class ParentActivity : Activity() {
         for (kid in store.kids()) root.add(kidCard(kid, active?.id == kid.id), topMarginDp = 10)
         root.add(Ui.button(this, getString(R.string.add_child), Ui.MUTED) { editKid(null) }, topMarginDp = 10)
 
-        root.add(Ui.text(this, getString(R.string.protection_hint), 14f, Ui.MUTED), topMarginDp = 4)
+        val modes = listOf(
+            Triple(Store.LOCK_OFF, R.string.lock_off, "🔓"),
+            Triple(Store.LOCK_PICTURE, R.string.lock_picture, "🧩"),
+            Triple(Store.LOCK_NUMBER, R.string.lock_number, "🔢"),
+            Triple(Store.LOCK_PARENT, R.string.lock_parent, "🔒"),
+        )
+        val open = store.sectionOpen(KEY_PROTECTION, false)
+        val current = modes.first { it.first == store.kidLockMode }
         settingsGroup(root, R.string.section_protection) { group ->
-            for ((mode, labelRes, icon) in listOf(
-                Triple(Store.LOCK_OFF, R.string.lock_off, "🔓"),
-                Triple(Store.LOCK_PICTURE, R.string.lock_picture, "🧩"),
-                Triple(Store.LOCK_NUMBER, R.string.lock_number, "🔢"),
-                Triple(Store.LOCK_PARENT, R.string.lock_parent, "🔒"),
-            )) {
-                settingsRow(group, icon, getString(labelRes), if (store.kidLockMode == mode) "✓" else "") {
-                    store.kidLockMode = mode
-                    render()
+            settingsRow(group, current.third, getString(current.second), if (open) "▾" else "▸") {
+                store.setSectionOpen(KEY_PROTECTION, !open)
+                render()
+            }
+            if (open) {
+                for ((mode, labelRes, icon) in modes) {
+                    settingsRow(group, icon, getString(labelRes), if (store.kidLockMode == mode) "✓" else "") {
+                        store.kidLockMode = mode
+                        store.setSectionOpen(KEY_PROTECTION, false)
+                        render()
+                    }
                 }
             }
         }
+        if (open) root.add(Ui.text(this, getString(R.string.protection_hint), 14f, Ui.MUTED), topMarginDp = 6)
     }
 
     /** One line per child: minutes played today and on which games (all family phones). */
@@ -659,6 +669,21 @@ class ParentActivity : Activity() {
 
     private fun section(title: String) = Ui.text(this, title, 20f, Ui.ACCENT, bold = true)
 
+    /** ➕ / ➖: the time changes; the button bounces, the phone ticks, and a line says what it is now. */
+    private fun adjustTime(kid: Kid, view: View, minutes: Int) {
+        store.addBonus(kid.id, minutes)
+        Ui.tick(this)
+        Ui.bounce(view)
+        val change = (if (minutes > 0) "+" else "−") + Math.abs(minutes) + " min"
+        Toast.makeText(
+            this,
+            getString(R.string.adjust_done, kid.name, change, Ui.formatMinutes(this, store.remainingMs(kid))),
+            Toast.LENGTH_SHORT,
+        ).show()
+        // Redraw after the bounce has played, so the change is visible on the button first.
+        window.decorView.postDelayed({ render() }, 150)
+    }
+
     /** A game as a row: its app icon and name. */
     private fun gameRow(pkg: String, name: String): LinearLayout {
         val row = Ui.row(this)
@@ -691,19 +716,18 @@ class ParentActivity : Activity() {
         }
 
         val icons = Ui.row(this)
-        fun icon(label: String, description: String, color: Int, onClick: () -> Unit) =
-            Ui.button(this, label, color, 22f, onClick).apply {
+        fun icon(label: String, description: String, color: Int, onClick: (View) -> Unit) =
+            Ui.button(this, label, color, 18f) {}.apply {
+                setOnClickListener { onClick(this) }
                 contentDescription = description
                 // Icon only: small padding, and never shorten the icon to "…".
-                setPadding(0, dp(12), 0, dp(12))
+                setPadding(0, dp(8), 0, dp(8))
                 ellipsize = null
                 maxLines = 1
             }
 
-        icons.addView(icon("➕", getString(R.string.bonus_15), Ui.ACCENT) {
-            store.addBonus(kid.id, 15)
-            render()
-        }, weighted())
+        icons.addView(icon("➕", getString(R.string.bonus_plus), Ui.ACCENT) { view -> adjustTime(kid, view, 5) }, weighted())
+        icons.addView(icon("➖", getString(R.string.bonus_minus), Ui.TRACK) { view -> adjustTime(kid, view, -5) }, weighted(leftMarginDp = 8))
         icons.addView(icon("✏️", getString(R.string.edit), Ui.TRACK) { editKid(kid) }, weighted(leftMarginDp = 8))
         if (playing) {
             icons.addView(icon("⏹️", getString(R.string.stop_now), Ui.TRACK) {
@@ -755,9 +779,11 @@ class ParentActivity : Activity() {
             }
             for (animal in Store.SECRET_PICTURES) {
                 val cell = Ui.text(this, animal, 26f, center = true).apply {
+                    Ui.pressable(this@ParentActivity, this)
                     setOnClickListener {
                         picture = animal
                         paint()
+                        Ui.bounce(this)
                     }
                 }
                 cells += cell
@@ -889,6 +915,7 @@ class ParentActivity : Activity() {
         private const val TAB_STATS = "stats"
         private const val STATE_TAB = "tab"
         private const val STATE_PAGE = "settings_page"
+        private const val KEY_PROTECTION = "protection"
         private const val PAGE_PERMISSIONS = "permissions"
         private const val PAGE_SECURITY = "security"
         private const val PAGE_SYNC = "sync"

@@ -190,6 +190,11 @@
     <string name="settings_back">‹ הגדרות</string>
     <string name="row_from">התחלה</string>
     <string name="row_to">סיום</string>
+    <string name="adjust_done">%1$s: %2$s, נשארו %3$s</string>
+    <string name="refresh_done">הזמן עודכן</string>
+    <string name="refresh_time">רענון זמן</string>
+    <string name="bonus_plus">+5 דק׳</string>
+    <string name="bonus_minus">−5 דק׳</string>
     <string name="kid_left">נשארו %1$s</string>
     <string name="kid_today">%1$d מתוך %2$d דקות היום</string>
     <string name="game_auto">זוהה אוטומטית</string>
