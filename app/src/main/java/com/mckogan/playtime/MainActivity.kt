@@ -120,12 +120,16 @@ class MainActivity : Activity() {
         root.add(Ui.text(this, title, 30f, bold = true, center = true))
         root.add(Ui.text(this, subtitle, 16f, Ui.MUTED, center = true), topMarginDp = 4)
         // Refresh: the time on this screen only updates when it is drawn again.
-        root.add(Ui.button(this, "🔄", Ui.TRACK, 22f) {
-            Sync.flush(this)
-            render()
-        }.apply {
+        root.add(Ui.button(this, "🔄", Ui.TRACK, 22f) {}.apply {
             contentDescription = getString(R.string.refresh_time)
             setPadding(dp(20), dp(10), dp(20), dp(10))
+            setOnClickListener {
+                Sync.flush(this@MainActivity)
+                Ui.tick(this@MainActivity)
+                Ui.bounce(this)
+                Toast.makeText(this@MainActivity, getString(R.string.refresh_done), Toast.LENGTH_SHORT).show()
+                window.decorView.postDelayed({ render() }, 150)
+            }
         }, topMarginDp = 12)
 
         if (!GuardService.isReady(this)) {

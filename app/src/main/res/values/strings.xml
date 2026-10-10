@@ -162,6 +162,8 @@
     <string name="use_fingerprint">Use fingerprint instead of the PIN</string>
     <string name="voice_reminders">🔊 Voice reminders (10, 5, 1 min)</string>
     <string name="voice_try">▶ Try</string>
+    <string name="adjust_done">%1$s: %2$s, %3$s left</string>
+    <string name="refresh_done">Time updated</string>
     <string name="refresh_time">Refresh time</string>
     <string name="bonus_plus">+5 min</string>
     <string name="bonus_minus">−5 min</string>

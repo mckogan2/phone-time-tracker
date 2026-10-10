@@ -227,6 +227,16 @@ object Ui {
         }.start()
     }
 
+    /** A very short buzz: "it worked". Silent on phones without a vibrator. */
+    fun tick(context: Context) {
+        runCatching {
+            val vibrator = context.getSystemService(android.os.Vibrator::class.java) ?: return
+            if (vibrator.hasVibrator()) {
+                vibrator.vibrate(android.os.VibrationEffect.createOneShot(40, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+            }
+        }
+    }
+
     /** Three quick side-to-side moves, for a wrong answer. */
     fun shake(view: View, distancePx: Float) {
         view.animate().cancel()

@@ -602,6 +602,21 @@ class ParentActivity : Activity() {
 
     private fun section(title: String) = Ui.text(this, title, 20f, Ui.ACCENT, bold = true)
 
+    /** ➕ / ➖: the time changes; the button bounces, the phone ticks, and a line says what it is now. */
+    private fun adjustTime(kid: Kid, view: View, minutes: Int) {
+        store.addBonus(kid.id, minutes)
+        Ui.tick(this)
+        Ui.bounce(view)
+        val change = (if (minutes > 0) "+" else "−") + Math.abs(minutes) + " min"
+        Toast.makeText(
+            this,
+            getString(R.string.adjust_done, kid.name, change, Ui.formatMinutes(this, store.remainingMs(kid))),
+            Toast.LENGTH_SHORT,
+        ).show()
+        // Redraw after the bounce has played, so the change is visible on the button first.
+        window.decorView.postDelayed({ render() }, 150)
+    }
+
     /** A game as a row: its app icon and name. */
     private fun gameRow(pkg: String, name: String): LinearLayout {
         val row = Ui.row(this)
@@ -634,8 +649,9 @@ class ParentActivity : Activity() {
         }
 
         val icons = Ui.row(this)
-        fun icon(label: String, description: String, color: Int, onClick: () -> Unit) =
-            Ui.button(this, label, color, 22f, onClick).apply {
+        fun icon(label: String, description: String, color: Int, onClick: (View) -> Unit) =
+            Ui.button(this, label, color, 22f) {}.apply {
+                setOnClickListener { onClick(this) }
                 contentDescription = description
                 // Icon only: small padding, and never shorten the icon to "…".
                 setPadding(0, dp(12), 0, dp(12))
@@ -643,14 +659,8 @@ class ParentActivity : Activity() {
                 maxLines = 1
             }
 
-        icons.addView(icon("➕", getString(R.string.bonus_plus), Ui.ACCENT) {
-            store.addBonus(kid.id, 5)
-            render()
-        }, weighted())
-        icons.addView(icon("➖", getString(R.string.bonus_minus), Ui.TRACK) {
-            store.addBonus(kid.id, -5)
-            render()
-        }, weighted(leftMarginDp = 8))
+        icons.addView(icon("➕", getString(R.string.bonus_plus), Ui.ACCENT) { view -> adjustTime(kid, view, 5) }, weighted())
+        icons.addView(icon("➖", getString(R.string.bonus_minus), Ui.TRACK) { view -> adjustTime(kid, view, -5) }, weighted(leftMarginDp = 8))
         icons.addView(icon("✏️", getString(R.string.edit), Ui.TRACK) { editKid(kid) }, weighted(leftMarginDp = 8))
         if (playing) {
             icons.addView(icon("⏹️", getString(R.string.stop_now), Ui.TRACK) {
