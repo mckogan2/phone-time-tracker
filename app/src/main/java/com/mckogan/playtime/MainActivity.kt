@@ -158,7 +158,8 @@ class MainActivity : Activity() {
 
         // A game was opened and no one is playing yet: a parent can just play it (fingerprint, no time).
         val game = blockedGame
-        if (reason == REASON_WHO && game != null) {
+        // Outside game hours a parent can play a kids' game (no time limit, until the screen turns off).
+        if (game != null && (reason == REASON_WHO || reason == REASON_HOURS)) {
             root.add(Ui.button(this, getString(R.string.parent_plays_now), Ui.MUTED) {
                 startActivityForResult(
                     Intent(this, PinActivity::class.java).putExtra(PinActivity.EXTRA_MODE, PinActivity.MODE_VERIFY),
