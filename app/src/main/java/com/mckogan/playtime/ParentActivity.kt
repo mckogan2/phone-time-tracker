@@ -747,6 +747,26 @@ class ParentActivity : Activity() {
             icons.addView(icon("🗑️", getString(R.string.remove), Ui.TRACK) { confirmRemove(kid) }, weighted(leftMarginDp = 8))
         }
         card.add(icons, topMarginDp = 14)
+
+        // Tomorrow only: take time off (or give it) for the next day, e.g. after a bad afternoon.
+        val tomorrow = Ui.row(this)
+        tomorrow.addView(
+            Ui.text(this, getString(R.string.tomorrow_label, Ui.formatMinutes(this, store.allowanceMinutes(kid, store.tomorrowDay()) * Store.MINUTE_MS)), 15f, Ui.MUTED),
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
+        )
+        for ((label, minutes) in listOf("−5" to -5, "+5" to 5)) {
+            tomorrow.addView(
+                Ui.button(this, label, Ui.TRACK, 15f) {
+                    store.changeTomorrow(kid.id, minutes)
+                    Ui.tick(this)
+                    render()
+                }.apply { setPadding(dp(14), dp(6), dp(14), dp(6)) },
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                    marginStart = dp(8)
+                },
+            )
+        }
+        card.add(tomorrow, topMarginDp = 10)
         return card
     }
 

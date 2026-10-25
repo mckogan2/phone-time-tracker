@@ -188,6 +188,7 @@
     <string name="value_connected">מחובר</string>
     <string name="value_not_connected">לא מחובר</string>
     <string name="settings_back">‹ הגדרות</string>
+    <string name="tomorrow_label">מחר: %1$s</string>
     <string name="row_from">התחלה</string>
     <string name="row_to">סיום</string>
     <string name="refresh_done">הזמן עודכן</string>

@@ -219,7 +219,7 @@ class MainActivity : Activity() {
 
     private fun kidCard(kid: Kid, active: Kid?): LinearLayout {
         val remaining = store.remainingMs(kid)
-        val total = kid.dailyMinutes * Store.MINUTE_MS
+        val total = store.allowanceMinutes(kid) * Store.MINUTE_MS
         val playing = active?.id == kid.id
         val done = remaining <= 0
         val card = Ui.card(this)

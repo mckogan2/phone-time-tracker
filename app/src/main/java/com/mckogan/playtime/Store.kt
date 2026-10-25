@@ -24,6 +24,9 @@ data class Kid(
     val secretNumber: String? = null,
     /** Small square JPEG of the kid's face, Base64, or null (shows the first letter instead). */
     val photo: String? = null,
+    /** A parent's one-day change to the allowance: it applies on [adjustDay] only. */
+    val adjustDay: String? = null,
+    val adjustMinutes: Int = 0,
 )
 
 /** All app state, kept in SharedPreferences so it survives restarts. */
@@ -59,6 +62,8 @@ class Store(context: Context) {
                 o.optString("picture").ifEmpty { null },
                 o.optString("number").ifEmpty { null },
                 o.optString("photo").ifEmpty { null },
+                o.optString("adjDay").ifEmpty { null },
+                o.optInt("adjMin"),
             )
         }
     }
@@ -77,6 +82,8 @@ class Store(context: Context) {
                     .put("picture", it.secretPicture ?: "")
                     .put("number", it.secretNumber ?: "")
                     .put("photo", it.photo ?: "")
+                    .put("adjDay", it.adjustDay ?: "")
+                    .put("adjMin", it.adjustMinutes)
             )
         }
         prefs.edit().putString(KEY_KIDS, arr.toString()).apply()
@@ -218,7 +225,22 @@ class Store(context: Context) {
         prefs.edit().putString(sharedKey(kidId), o.toString()).apply()
     }
 
-    fun remainingMs(kid: Kid): Long = kid.dailyMinutes * MINUTE_MS - usedMs(kid.id)
+    /** The allowance for [day]: the daily minutes, plus a parent's change for that day only. */
+    fun allowanceMinutes(kid: Kid, day: String = today()): Int =
+        kid.dailyMinutes + if (kid.adjustDay == day) kid.adjustMinutes else 0
+
+    fun tomorrowDay(): String = LocalDate.now().plusDays(1).toString()
+
+    /** Adds (or takes away) [minutes] from tomorrow's allowance. Tomorrow only; never below zero. */
+    fun changeTomorrow(kidId: String, minutes: Int) {
+        val kid = kid(kidId) ?: return
+        val day = tomorrowDay()
+        val current = if (kid.adjustDay == day) kid.adjustMinutes else 0
+        val next = (current + minutes).coerceAtLeast(-kid.dailyMinutes)
+        saveKids(kids().map { if (it.id == kidId) it.copy(adjustDay = day, adjustMinutes = next) else it })
+    }
+
+    fun remainingMs(kid: Kid): Long = allowanceMinutes(kid) * MINUTE_MS - usedMs(kid.id)
 
     fun addUsed(kidId: String, ms: Long, pkg: String? = null) {
         val e = prefs.edit()
