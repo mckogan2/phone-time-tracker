@@ -193,6 +193,7 @@
     <string name="earn_sessions_today">סבבים היום: %1$d מתוך %2$d</string>
     <string name="earn_question">שאלה %1$d מתוך %2$d</string>
     <string name="earn_session_result">%1$d מתוך %2$d נכון: +%3$s</string>
+    <string name="earn_next">▶ 10 שאלות נוספות</string>
     <string name="earn_done_today">סיימתם את שני הסבבים להיום.</string>
     <string name="earn_play">▶ לשחק (נשאר %1$s)</string>
     <string name="earn_check">✓ בדיקה</string>

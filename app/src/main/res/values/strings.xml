@@ -189,6 +189,7 @@
     <string name="earn_sessions_today">Sessions today: %1$d of %2$d</string>
     <string name="earn_question">Question %1$d of %2$d</string>
     <string name="earn_session_result">%1$d of %2$d right: +%3$s</string>
+    <string name="earn_next">▶ Next 10 questions</string>
     <string name="earn_done_today">You used both sessions for today.</string>
     <string name="earn_play">▶ Play (%1$s left)</string>
     <string name="earn_check">✓ Check</string>
