@@ -3,18 +3,44 @@ package com.mckogan.playtime
 import kotlin.random.Random
 
 /**
- * Arithmetic questions a kid types an answer to, to earn time. Every question is random.
- * Level 1: addition up to 200, subtraction from up to 100 taking away at most 20, small multiplication (up to 10 x 5).
- * Level 2: addition up to 400, subtraction within the same hundred, the same multiplication.
+ * Questions a kid answers to earn time. Every question is random.
+ * Typed answers: addition, subtraction, small multiplication. Level 1: addition up to 200, subtraction from up to 100
+ * taking away at most 20, multiplication up to 10 x 5. Level 2: addition up to 400, subtraction within the same hundred.
+ * Picture questions (four choices): a picture stands for a hidden number, e.g. "10 + 😀 = 13". Numbers up to 50.
  */
 object MathPuzzle {
 
-    class Question(val text: String, val answer: String)
+    /** [options] is null for a typed answer; otherwise the kid picks one of them, and [answer] is the right one. */
+    class Question(val text: String, val answer: String, val options: List<String>? = null)
 
-    fun make(level: Int, rng: Random = Random.Default): Question = when (rng.nextInt(3)) {
+    private val PICTURES = listOf("😀", "🐶", "🍎", "⭐", "🚗", "🌸", "🐟", "🎈")
+
+    fun make(level: Int, rng: Random = Random.Default): Question = when (rng.nextInt(4)) {
         0 -> addition(if (level >= 2) 400 else 200, rng)
         1 -> if (level >= 2) subtractionSameHundred(rng) else subtractionFrom100(rng)
-        else -> multiply(rng)
+        2 -> multiply(rng)
+        else -> picture(rng)
+    }
+
+    /**
+     * A picture stands for a hidden number. Numbers stay up to 50. In a subtraction the number taken away
+     * is at most 20: "87 − 😀 = 68" is fine, "87 − 😀 = 58" is not.
+     */
+    private fun picture(rng: Random): Question {
+        val image = PICTURES[rng.nextInt(PICTURES.size)]
+        val hidden: Int
+        val text: String
+        if (rng.nextBoolean()) {
+            hidden = rng.nextInt(1, 11)
+            val a = rng.nextInt(1, 51 - hidden)
+            text = "$a + $image = ${a + hidden}"
+        } else {
+            hidden = rng.nextInt(1, 21)
+            val result = rng.nextInt(1, 51 - hidden)
+            text = "${result + hidden} − $image = $result"
+        }
+        val wrong = (1..20).filter { it != hidden }.shuffled(rng).take(3).map { it.toString() }
+        return Question(text, hidden.toString(), (wrong + hidden.toString()).shuffled(rng))
     }
 
     /** Sums up to [max]. */
