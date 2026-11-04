@@ -33,6 +33,12 @@ object Voice {
         playClip(app, if (lang(app) == "he") R.raw.voice_he_extra else R.raw.voice_en_extra)
     }
 
+    /** How to earn time with questions. Played once per kid, the first time they see the questions. */
+    fun playMathIntro(context: Context) {
+        val app = context.applicationContext
+        playClip(app, if (lang(app) == "he") R.raw.math_instructions_he else R.raw.math_instructions_en)
+    }
+
     private fun lang(app: Context) =
         if (app.resources.configuration.locales[0].language in setOf("iw", "he")) "he" else "en"
 

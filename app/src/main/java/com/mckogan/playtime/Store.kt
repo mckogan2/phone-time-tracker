@@ -643,6 +643,11 @@ class Store(context: Context) {
     }
 
     private fun sharedKey(id: String) = "shared_$id"
+    /** Whether the spoken instructions for the questions were already played to this kid on this phone. */
+    fun mathIntroPlayed(kidId: String): Boolean = prefs.getBoolean("math_intro_$kidId", false)
+
+    fun markMathIntroPlayed(kidId: String) = prefs.edit().putBoolean("math_intro_$kidId", true).apply()
+
     private fun sessionCountKey(id: String) = "math_sessions_$id"
     private fun sessionDayKey(id: String) = "math_sessions_day_$id"
     private fun usedKey(id: String) = "used_$id"

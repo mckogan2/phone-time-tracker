@@ -232,6 +232,10 @@ class MainActivity : Activity() {
             }
             else -> {
                 val q = mathQuestion ?: MathPuzzle.make(kid.mathLevel).also { mathQuestion = it }
+                if (!store.mathIntroPlayed(kid.id)) {
+                    store.markMathIntroPlayed(kid.id)
+                    if (store.voiceReminders) Voice.playMathIntro(this)
+                }
                 card.add(dotsRow(), topMarginDp = 12)
                 card.add(Ui.text(this, getString(R.string.earn_question, mathResults.size + 1, total), 15f, Ui.MUTED, center = true), topMarginDp = 4)
                 // Numbers always read left to right, also in Hebrew.
