@@ -33,11 +33,11 @@ object MathPuzzle {
         return Question("$a + $b = ?", (a + b).toString())
     }
 
-    /** Subtraction from up to 100, with a difference of 1 to 10. */
+    /** Subtraction from up to 100, taking away at most 20: "87 − 19 = ?" is fine, "87 − 21" is not. */
     private fun subtractionFrom100(rng: Random): Question {
-        val a = rng.nextInt(2, 101)
-        val gap = rng.nextInt(1, minOf(10, a - 1) + 1)
-        return Question("$a − ${a - gap} = ?", gap.toString())
+        val taken = rng.nextInt(1, 21)
+        val a = rng.nextInt(taken + 1, 101)
+        return Question("$a − $taken = ?", (a - taken).toString())
     }
 
     /** Both numbers in the same hundred, e.g. 237 − 215. */
