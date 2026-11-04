@@ -242,11 +242,16 @@ class MainActivity : Activity() {
                 card.add(Ui.text(this, q.text, 40f, bold = true, center = true).apply {
                     textDirection = android.view.View.TEXT_DIRECTION_LTR
                 }, topMarginDp = 12)
-                card.add(Ui.text(this, mathAnswer.ifEmpty { " " }, 32f, Ui.ACCENT, bold = true, center = true).apply {
-                    textDirection = android.view.View.TEXT_DIRECTION_LTR
-                }, topMarginDp = 8)
-                card.add(Ui.keypad(this) { key -> pressMath(key) }, topMarginDp = 12, fill = false)
-                card.add(Ui.button(this, getString(R.string.earn_check), Ui.ACCENT) { checkMath(kid) }, topMarginDp = 8)
+                val options = q.options
+                if (options != null) {
+                    card.add(optionsGrid(kid, options), topMarginDp = 12)
+                } else {
+                    card.add(Ui.text(this, mathAnswer.ifEmpty { " " }, 32f, Ui.ACCENT, bold = true, center = true).apply {
+                        textDirection = android.view.View.TEXT_DIRECTION_LTR
+                    }, topMarginDp = 8)
+                    card.add(Ui.keypad(this) { key -> pressMath(key) }, topMarginDp = 12, fill = false)
+                    card.add(Ui.button(this, getString(R.string.earn_check), Ui.ACCENT) { answerMath(kid, mathAnswer) }, topMarginDp = 8)
+                }
             }
         }
         root.add(card, topMarginDp = 16)
@@ -272,11 +277,29 @@ class MainActivity : Activity() {
         render()
     }
 
+    /** Multiple choice: four answers, two per row. */
+    private fun optionsGrid(kid: Kid, options: List<String>): LinearLayout {
+        val grid = Ui.column(this)
+        for (pair in options.chunked(2)) {
+            val row = Ui.row(this)
+            pair.forEachIndexed { i, option ->
+                row.addView(
+                    Ui.button(this, option, Ui.TRACK, 30f) { answerMath(kid, option) },
+                    LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                        if (i > 0) marginStart = dp(8)
+                    },
+                )
+            }
+            grid.add(row, topMarginDp = 8)
+        }
+        return grid
+    }
+
     /** A wrong answer doesn't count. The session ends after 10 questions and its time is given then. */
-    private fun checkMath(kid: Kid) {
+    private fun answerMath(kid: Kid, given: String) {
         val q = mathQuestion ?: return
-        if (mathAnswer.isEmpty()) return
-        val right = mathAnswer.toIntOrNull() == q.answer
+        if (given.isEmpty()) return
+        val right = given == q.answer || given.toIntOrNull() != null && given.toIntOrNull() == q.answer.toIntOrNull()
         mathAnswer = ""
         mathResults.add(right)
         if (right) Ui.tick(this) else Voice.buzz(this)
