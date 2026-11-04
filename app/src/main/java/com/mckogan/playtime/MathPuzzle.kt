@@ -55,18 +55,24 @@ object MathPuzzle {
         return Question("$a × $b = ?", (a * b).toString())
     }
 
-    /** A picture stands for a hidden number: "10 + 😀 = 13". Numbers up to 50, subtraction results up to 20. */
+    /**
+     * A picture stands for a hidden number: "10 + 😀 = 13". Numbers stay up to 50.
+     * In a subtraction the number taken away is at most 20: "87 − 😀 = 68" is fine, "87 − 😀 = 58" is not.
+     */
     private fun picture(rng: Random): Question {
-        val hidden = rng.nextInt(1, 11)
         val image = PICTURES[rng.nextInt(PICTURES.size)]
-        val text = if (rng.nextBoolean()) {
+        val hidden: Int
+        val text: String
+        if (rng.nextBoolean()) {
+            hidden = rng.nextInt(1, 11)
             val a = rng.nextInt(1, 51 - hidden)
-            "$a + $image = ${a + hidden}"
+            text = "$a + $image = ${a + hidden}"
         } else {
-            val result = rng.nextInt(1, 21)
-            "${result + hidden} − $image = $result"
+            hidden = rng.nextInt(1, 21)
+            val result = rng.nextInt(1, 51 - hidden)
+            text = "${result + hidden} − $image = $result"
         }
-        val wrong = (1..12).filter { it != hidden }.shuffled(rng).take(3).map { it.toString() }
+        val wrong = (1..20).filter { it != hidden }.shuffled(rng).take(3).map { it.toString() }
         return choice(text, hidden.toString(), wrong, rng)
     }
 
