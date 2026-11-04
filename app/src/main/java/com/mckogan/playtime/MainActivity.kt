@@ -27,7 +27,8 @@ class MainActivity : Activity() {
     private var createdDark = false
     private var mathQuestion: MathPuzzle.Question? = null
     private var mathAnswer = ""
-    private var mathMessage = ""
+    /** One entry per answered question in the current session of 10. */
+    private val mathResults = mutableListOf<Boolean>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Ui.applyTheme(this)
@@ -191,61 +192,96 @@ class MainActivity : Activity() {
     }
 
     /** Time's up: once a day, "3 more minutes?" with big ✅ / ❌ (and a voice, if recorded). */
-    /** Solve questions to earn time: 30 seconds for each right answer, up to the daily cap. */
+    /** After the time is up: a session of 10 questions. Each right answer is 30 seconds, given when the session ends. */
     private fun earnPanel(root: LinearLayout, kid: Kid) {
         val card = Ui.card(this)
-        val earned = store.earnedTodayMs(kid.id)
+        val sessions = store.sessionsToday(kid.id)
         val left = store.remainingMs(kid)
+        val total = Store.MATH_SESSION_QUESTIONS
         card.add(Ui.text(this, getString(R.string.earn_title), 20f, bold = true, center = true))
         card.add(
-            Ui.text(this, getString(R.string.earn_progress, Ui.formatClock(earned), Ui.formatClock(Store.MATH_CAP_MS)), 15f, Ui.MUTED, center = true),
+            Ui.text(this, getString(R.string.earn_sessions_today, sessions, Store.MATH_SESSIONS_PER_DAY), 15f, Ui.MUTED, center = true),
             topMarginDp = 4,
         )
         if (left > 0) {
             card.add(Ui.button(this, getString(R.string.earn_play, Ui.formatClock(left)), Ui.ACCENT) {
                 reason = null
                 blockedGame = null
-                mathMessage = ""
+                mathResults.clear()
                 render()
             }, topMarginDp = 12)
         }
-        if (earned >= Store.MATH_CAP_MS) {
-            card.add(Ui.text(this, getString(R.string.earn_done_today), 18f, center = true), topMarginDp = 16)
-        } else {
-            val q = mathQuestion ?: MathPuzzle.make(kid.mathLevel).also { mathQuestion = it }
-            card.add(Ui.text(this, q.text, 40f, bold = true, center = true), topMarginDp = 16)
-            card.add(Ui.text(this, mathAnswer.ifEmpty { " " }, 32f, Ui.ACCENT, bold = true, center = true), topMarginDp = 8)
-            if (mathMessage.isNotEmpty()) card.add(Ui.text(this, mathMessage, 16f, Ui.MUTED, center = true), topMarginDp = 6)
-            card.add(Ui.keypad(this) { key -> pressMath(key) }, topMarginDp = 12, fill = false)
-            card.add(Ui.button(this, getString(R.string.earn_check), Ui.ACCENT) { checkMath(kid) }, topMarginDp = 8)
+        when {
+            mathResults.size >= total -> {
+                val right = mathResults.count { it }
+                card.add(
+                    Ui.text(this, getString(R.string.earn_session_result, right, total, Ui.formatClock(right * Store.MATH_STEP_MS)), 20f, bold = true, center = true),
+                    topMarginDp = 16,
+                )
+                card.add(dotsRow(), topMarginDp = 12)
+                if (left <= 0 && sessions < Store.MATH_SESSIONS_PER_DAY) {
+                    card.add(Ui.button(this, getString(R.string.earn_next), Ui.ACCENT) {
+                        mathResults.clear()
+                        mathQuestion = MathPuzzle.make(kid.mathLevel)
+                        render()
+                    }, topMarginDp = 12)
+                }
+            }
+            sessions >= Store.MATH_SESSIONS_PER_DAY -> {
+                card.add(Ui.text(this, getString(R.string.earn_done_today), 18f, center = true), topMarginDp = 16)
+            }
+            else -> {
+                val q = mathQuestion ?: MathPuzzle.make(kid.mathLevel).also { mathQuestion = it }
+                card.add(dotsRow(), topMarginDp = 12)
+                card.add(Ui.text(this, getString(R.string.earn_question, mathResults.size + 1, total), 15f, Ui.MUTED, center = true), topMarginDp = 4)
+                // Numbers always read left to right, also in Hebrew.
+                card.add(Ui.text(this, q.text, 40f, bold = true, center = true).apply {
+                    textDirection = android.view.View.TEXT_DIRECTION_LTR
+                }, topMarginDp = 12)
+                card.add(Ui.text(this, mathAnswer.ifEmpty { " " }, 32f, Ui.ACCENT, bold = true, center = true).apply {
+                    textDirection = android.view.View.TEXT_DIRECTION_LTR
+                }, topMarginDp = 8)
+                card.add(Ui.keypad(this) { key -> pressMath(key) }, topMarginDp = 12, fill = false)
+                card.add(Ui.button(this, getString(R.string.earn_check), Ui.ACCENT) { checkMath(kid) }, topMarginDp = 8)
+            }
         }
         root.add(card, topMarginDp = 16)
     }
 
+    /** Ten circles: green for a right answer, red for a wrong one, grey for questions not yet answered. */
+    private fun dotsRow(): LinearLayout {
+        val row = Ui.row(this)
+        row.gravity = Gravity.CENTER
+        for (i in 0 until Store.MATH_SESSION_QUESTIONS) {
+            val color = when (mathResults.getOrNull(i)) {
+                true -> GREEN
+                false -> Ui.DANGER
+                null -> Ui.MUTED
+            }
+            row.addView(Ui.text(this, "●", 20f, color, center = true), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        }
+        return row
+    }
+
     private fun pressMath(key: String) {
         mathAnswer = if (key == "⌫") mathAnswer.dropLast(1) else (mathAnswer + key).take(4)
-        mathMessage = ""
         render()
     }
 
-    /** A wrong answer just doesn't count: the next question comes up. */
+    /** A wrong answer doesn't count. The session ends after 10 questions and its time is given then. */
     private fun checkMath(kid: Kid) {
         val q = mathQuestion ?: return
         if (mathAnswer.isEmpty()) return
-        val typed = mathAnswer.toIntOrNull()
+        val right = mathAnswer.toIntOrNull() == q.answer
         mathAnswer = ""
-        if (typed == q.answer) {
-            val gain = minOf(Store.MATH_STEP_MS, Store.MATH_CAP_MS - store.earnedTodayMs(kid.id))
-            store.addEarnedMs(kid.id, gain)
-            store.giveMs(kid.id, gain)
+        mathResults.add(right)
+        if (right) Ui.tick(this) else Voice.buzz(this)
+        if (mathResults.size >= Store.MATH_SESSION_QUESTIONS) {
+            store.finishSession(kid.id, mathResults.count { it } * Store.MATH_STEP_MS)
             Sync.flush(this)
-            Ui.tick(this)
-            mathMessage = getString(R.string.earn_correct, Ui.formatClock(gain))
         } else {
-            Voice.buzz(this)
-            mathMessage = getString(R.string.earn_wrong)
+            mathQuestion = MathPuzzle.make(kid.mathLevel)
         }
-        mathQuestion = MathPuzzle.make(kid.mathLevel)
         render()
     }
 

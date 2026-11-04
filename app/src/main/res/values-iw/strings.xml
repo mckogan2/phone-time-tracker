@@ -190,12 +190,13 @@
     <string name="settings_back">‹ הגדרות</string>
     <string name="tomorrow_label">מחר: %1$s</string>
     <string name="earn_title">לקבל עוד זמן</string>
-    <string name="earn_progress">הרווחתם היום: %1$s מתוך %2$s</string>
+    <string name="earn_sessions_today">סבבים היום: %1$d מתוך %2$d</string>
+    <string name="earn_question">שאלה %1$d מתוך %2$d</string>
+    <string name="earn_session_result">%1$d מתוך %2$d נכון: +%3$s</string>
+    <string name="earn_next">▶ 10 שאלות נוספות</string>
+    <string name="earn_done_today">סיימתם את שני הסבבים להיום.</string>
     <string name="earn_play">▶ לשחק (נשאר %1$s)</string>
     <string name="earn_check">✓ בדיקה</string>
-    <string name="earn_correct">נכון! +%1$s</string>
-    <string name="earn_wrong">לא זה. השאלה הבאה.</string>
-    <string name="earn_done_today">הגעתם למכסה של זמן נוסף להיום.</string>
     <string name="row_math_level">רמת חשבון</string>
     <string name="math_level_1">עד 200 (+ − ×)</string>
     <string name="math_level_2">עד 1000 (+ −)</string>

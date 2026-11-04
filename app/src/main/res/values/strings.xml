@@ -186,12 +186,13 @@
     <string name="settings_back">‹ Settings</string>
     <string name="tomorrow_label">Tomorrow: %1$s</string>
     <string name="earn_title">Earn more time</string>
-    <string name="earn_progress">Earned today: %1$s of %2$s</string>
+    <string name="earn_sessions_today">Sessions today: %1$d of %2$d</string>
+    <string name="earn_question">Question %1$d of %2$d</string>
+    <string name="earn_session_result">%1$d of %2$d right: +%3$s</string>
+    <string name="earn_next">▶ Next 10 questions</string>
+    <string name="earn_done_today">You used both sessions for today.</string>
     <string name="earn_play">▶ Play (%1$s left)</string>
     <string name="earn_check">✓ Check</string>
-    <string name="earn_correct">Correct! +%1$s</string>
-    <string name="earn_wrong">Not this one. Next question.</string>
-    <string name="earn_done_today">You reached today\'s limit for extra time.</string>
     <string name="row_math_level">Math level</string>
     <string name="math_level_1">Up to 200 (+ − ×)</string>
     <string name="math_level_2">Up to 1000 (+ −)</string>

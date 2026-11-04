@@ -427,12 +427,17 @@ class Store(context: Context) {
         onAdjust?.invoke(kidId, today(), deltaMs)
     }
 
-    /** Time earned by solving questions today (on this phone). */
-    fun earnedTodayMs(kidId: String): Long =
-        if (prefs.getString(earnDayKey(kidId), null) == today()) prefs.getLong(earnKey(kidId), 0L) else 0L
+    /** Solving sessions (10 questions each) finished today, on this phone. */
+    fun sessionsToday(kidId: String): Int =
+        if (prefs.getString(sessionDayKey(kidId), null) == today()) prefs.getInt(sessionCountKey(kidId), 0) else 0
 
-    fun addEarnedMs(kidId: String, ms: Long) {
-        prefs.edit().putLong(earnKey(kidId), earnedTodayMs(kidId) + ms).putString(earnDayKey(kidId), today()).apply()
+    /** A finished session: its earned time is given now, and it counts toward today's sessions. */
+    fun finishSession(kidId: String, ms: Long) {
+        prefs.edit()
+            .putInt(sessionCountKey(kidId), sessionsToday(kidId) + 1)
+            .putString(sessionDayKey(kidId), today())
+            .apply()
+        giveMs(kidId, ms)
     }
 
     /** Gives [ms] of time for today (from solved questions). */
@@ -638,8 +643,8 @@ class Store(context: Context) {
     }
 
     private fun sharedKey(id: String) = "shared_$id"
-    private fun earnKey(id: String) = "earned_$id"
-    private fun earnDayKey(id: String) = "earned_day_$id"
+    private fun sessionCountKey(id: String) = "math_sessions_$id"
+    private fun sessionDayKey(id: String) = "math_sessions_day_$id"
     private fun usedKey(id: String) = "used_$id"
     private fun dayKey(id: String) = "day_$id"
     fun today(): String = LocalDate.now().toString()
@@ -653,9 +658,10 @@ class Store(context: Context) {
     companion object {
         const val MINUTE_MS = 60_000L
 
-        /** Solving a question gives this much time, up to the daily cap. */
+        /** Each right answer in a session gives this much time. A session is 10 questions, 2 sessions a day. */
         const val MATH_STEP_MS = 30_000L
-        const val MATH_CAP_MS = 15 * MINUTE_MS
+        const val MATH_SESSION_QUESTIONS = 10
+        const val MATH_SESSIONS_PER_DAY = 2
         const val DEFAULT_MINUTES = 45
         const val SETTINGS_UNLOCK_MS = 5 * MINUTE_MS
         const val MY_APP_COOLDOWN_MS = 10 * MINUTE_MS
