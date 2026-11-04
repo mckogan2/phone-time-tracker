@@ -25,7 +25,9 @@ class MainActivity : Activity() {
     private var blockedGame: String? = null
     private var blockedKidId: String? = null
     private var createdDark = false
-    private var spokenOfferFor: String? = null
+    private var mathQuestion: MathPuzzle.Question? = null
+    private var mathAnswer = ""
+    private var mathMessage = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Ui.applyTheme(this)
@@ -103,12 +105,12 @@ class MainActivity : Activity() {
             else -> getString(R.string.home_title) to
                 (active?.let { getString(R.string.kid_is_playing, it.name) } ?: getString(R.string.tap_to_play))
         }
-        val offerKid = store.kid(blockedKidId)?.takeIf {
-            reason == REASON_TIME_UP && store.offerExtra && store.gamesAllowedNow() &&
-                !store.extraOfferedToday(it.id) && store.remainingMs(it) <= 0
-        }
-        if (offerKid != null) {
-            extraOffer(root, offerKid)
+        // After the time is up, the kid can solve questions to earn more (see earnPanel).
+        val earnKid = store.kid(blockedKidId)?.takeIf { reason == REASON_TIME_UP && store.gamesAllowedNow() }
+        if (earnKid != null) {
+            root.add(Ui.text(this, title, 30f, bold = true, center = true))
+            root.add(Ui.text(this, subtitle, 16f, Ui.MUTED, center = true), topMarginDp = 4)
+            earnPanel(root, earnKid)
             setContentView(ScrollView(this).apply {
                 setBackgroundColor(Ui.BG)
                 isFillViewport = true
@@ -189,32 +191,62 @@ class MainActivity : Activity() {
     }
 
     /** Time's up: once a day, "3 more minutes?" with big ✅ / ❌ (and a voice, if recorded). */
-    private fun extraOffer(root: LinearLayout, kid: Kid) {
-        root.gravity = Gravity.CENTER_HORIZONTAL
-        root.addView(Ui.kidAvatar(this, kid, Ui.kid(kid.color), 96), LinearLayout.LayoutParams(dp(96), dp(96)).apply {
-            topMargin = dp(32)
-            gravity = Gravity.CENTER_HORIZONTAL
-        })
-        root.add(Ui.text(this, getString(R.string.time_up_name, kid.name), 30f, bold = true, center = true), topMarginDp = 16)
-        root.add(Ui.text(this, getString(R.string.extra_offer, Store.EXTRA_MINUTES), 24f, center = true), topMarginDp = 8)
-        val row = Ui.row(this)
-        row.addView(Ui.button(this, getString(R.string.extra_yes), Ui.kid(GREEN), 26f) {
-            store.markExtraOffered(kid.id)
-            store.recordExtra(taken = true)
-            store.addBonus(kid.id, Store.EXTRA_MINUTES)
-            Sync.flush(this)
-            startPlaying(kid)
-        }, LinearLayout.LayoutParams(0, dp(96), 1f))
-        row.addView(Ui.button(this, getString(R.string.extra_no), Ui.DANGER, 26f) {
-            store.markExtraOffered(kid.id)
-            store.recordExtra(taken = false)
-            render()
-        }, LinearLayout.LayoutParams(0, dp(96), 1f).apply { marginStart = dp(16) })
-        root.add(row, topMarginDp = 32)
-        if (spokenOfferFor != kid.id) {
-            spokenOfferFor = kid.id
-            if (store.voiceReminders) Voice.playExtraOffer(this)
+    /** Solve questions to earn time: 30 seconds for each right answer, up to the daily cap. */
+    private fun earnPanel(root: LinearLayout, kid: Kid) {
+        val card = Ui.card(this)
+        val earned = store.earnedTodayMs(kid.id)
+        val left = store.remainingMs(kid)
+        card.add(Ui.text(this, getString(R.string.earn_title), 20f, bold = true, center = true))
+        card.add(
+            Ui.text(this, getString(R.string.earn_progress, Ui.formatClock(earned), Ui.formatClock(Store.MATH_CAP_MS)), 15f, Ui.MUTED, center = true),
+            topMarginDp = 4,
+        )
+        if (left > 0) {
+            card.add(Ui.button(this, getString(R.string.earn_play, Ui.formatClock(left)), Ui.ACCENT) {
+                reason = null
+                blockedGame = null
+                mathMessage = ""
+                render()
+            }, topMarginDp = 12)
         }
+        if (earned >= Store.MATH_CAP_MS) {
+            card.add(Ui.text(this, getString(R.string.earn_done_today), 18f, center = true), topMarginDp = 16)
+        } else {
+            val q = mathQuestion ?: MathPuzzle.make(kid.mathLevel).also { mathQuestion = it }
+            card.add(Ui.text(this, q.text, 40f, bold = true, center = true), topMarginDp = 16)
+            card.add(Ui.text(this, mathAnswer.ifEmpty { " " }, 32f, Ui.ACCENT, bold = true, center = true), topMarginDp = 8)
+            if (mathMessage.isNotEmpty()) card.add(Ui.text(this, mathMessage, 16f, Ui.MUTED, center = true), topMarginDp = 6)
+            card.add(Ui.keypad(this) { key -> pressMath(key) }, topMarginDp = 12, fill = false)
+            card.add(Ui.button(this, getString(R.string.earn_check), Ui.ACCENT) { checkMath(kid) }, topMarginDp = 8)
+        }
+        root.add(card, topMarginDp = 16)
+    }
+
+    private fun pressMath(key: String) {
+        mathAnswer = if (key == "⌫") mathAnswer.dropLast(1) else (mathAnswer + key).take(4)
+        mathMessage = ""
+        render()
+    }
+
+    /** A wrong answer just doesn't count: the next question comes up. */
+    private fun checkMath(kid: Kid) {
+        val q = mathQuestion ?: return
+        if (mathAnswer.isEmpty()) return
+        val typed = mathAnswer.toIntOrNull()
+        mathAnswer = ""
+        if (typed == q.answer) {
+            val gain = minOf(Store.MATH_STEP_MS, Store.MATH_CAP_MS - store.earnedTodayMs(kid.id))
+            store.addEarnedMs(kid.id, gain)
+            store.giveMs(kid.id, gain)
+            Sync.flush(this)
+            Ui.tick(this)
+            mathMessage = getString(R.string.earn_correct, Ui.formatClock(gain))
+        } else {
+            Voice.buzz(this)
+            mathMessage = getString(R.string.earn_wrong)
+        }
+        mathQuestion = MathPuzzle.make(kid.mathLevel)
+        render()
     }
 
     private fun kidCard(kid: Kid, active: Kid?): LinearLayout {

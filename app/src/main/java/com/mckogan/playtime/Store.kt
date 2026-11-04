@@ -27,6 +27,8 @@ data class Kid(
     /** A parent's one-day change to the allowance: it applies on [adjustDay] only. */
     val adjustDay: String? = null,
     val adjustMinutes: Int = 0,
+    /** Math questions for earning time: 1 = up to 200 (+ − ×), 2 = up to 1000 (+ −). */
+    val mathLevel: Int = 1,
 )
 
 /** All app state, kept in SharedPreferences so it survives restarts. */
@@ -64,6 +66,7 @@ class Store(context: Context) {
                 o.optString("photo").ifEmpty { null },
                 o.optString("adjDay").ifEmpty { null },
                 o.optInt("adjMin"),
+                o.optInt("math", 1),
             )
         }
     }
@@ -84,6 +87,7 @@ class Store(context: Context) {
                     .put("photo", it.photo ?: "")
                     .put("adjDay", it.adjustDay ?: "")
                     .put("adjMin", it.adjustMinutes)
+                    .put("math", it.mathLevel)
             )
         }
         prefs.edit().putString(KEY_KIDS, arr.toString()).apply()
@@ -91,15 +95,15 @@ class Store(context: Context) {
     }
 
     /** Adds a child and returns their new ID. */
-    fun addKid(name: String, minutes: Int): String {
+    fun addKid(name: String, minutes: Int, mathLevel: Int = 1): String {
         val kids = kids()
         val id = newId()
-        saveKids(kids + Kid(id, name, minutes, KID_COLORS[kids.size % KID_COLORS.size]))
+        saveKids(kids + Kid(id, name, minutes, KID_COLORS[kids.size % KID_COLORS.size], mathLevel = mathLevel))
         return id
     }
 
-    fun updateKid(id: String, name: String, minutes: Int) {
-        saveKids(kids().map { if (it.id == id) it.copy(name = name, dailyMinutes = minutes) else it })
+    fun updateKid(id: String, name: String, minutes: Int, mathLevel: Int) {
+        saveKids(kids().map { if (it.id == id) it.copy(name = name, dailyMinutes = minutes, mathLevel = mathLevel) else it })
     }
 
     fun removeKid(id: String) {
@@ -423,19 +427,17 @@ class Store(context: Context) {
         onAdjust?.invoke(kidId, today(), deltaMs)
     }
 
-    /** "Time's up — 3 more minutes?" was already offered to this kid today (yes or no). */
-    fun extraOfferedToday(kidId: String): Boolean = prefs.getString("extra_offer_$kidId", null) == today()
+    /** Time earned by solving questions today (on this phone). */
+    fun earnedTodayMs(kidId: String): Long =
+        if (prefs.getString(earnDayKey(kidId), null) == today()) prefs.getLong(earnKey(kidId), 0L) else 0L
 
-    fun markExtraOffered(kidId: String) {
-        prefs.edit().putString("extra_offer_$kidId", today()).apply()
+    fun addEarnedMs(kidId: String, ms: Long) {
+        prefs.edit().putLong(earnKey(kidId), earnedTodayMs(kidId) + ms).putString(earnDayKey(kidId), today()).apply()
     }
 
-    /** Offer kids one "3 more minutes?" a day when their time is up. This phone only. */
-    var offerExtra: Boolean
-        get() = prefs.getBoolean(KEY_OFFER_EXTRA, true)
-        set(value) = prefs.edit().putBoolean(KEY_OFFER_EXTRA, value).apply()
+    /** Gives [ms] of time for today (from solved questions). */
+    fun giveMs(kidId: String, ms: Long) = adjust(kidId, -ms)
 
-    /** Extra time for today only. */
     /** Gives [minutes] (or takes them away when negative). Taking away stops at zero: the balance never goes below 0. */
     fun addBonus(kidId: String, minutes: Int) {
         val kid = kid(kidId) ?: return
@@ -636,6 +638,8 @@ class Store(context: Context) {
     }
 
     private fun sharedKey(id: String) = "shared_$id"
+    private fun earnKey(id: String) = "earned_$id"
+    private fun earnDayKey(id: String) = "earned_day_$id"
     private fun usedKey(id: String) = "used_$id"
     private fun dayKey(id: String) = "day_$id"
     fun today(): String = LocalDate.now().toString()
@@ -648,6 +652,10 @@ class Store(context: Context) {
 
     companion object {
         const val MINUTE_MS = 60_000L
+
+        /** Solving a question gives this much time, up to the daily cap. */
+        const val MATH_STEP_MS = 30_000L
+        const val MATH_CAP_MS = 15 * MINUTE_MS
         const val DEFAULT_MINUTES = 45
         const val SETTINGS_UNLOCK_MS = 5 * MINUTE_MS
         const val MY_APP_COOLDOWN_MS = 10 * MINUTE_MS
@@ -688,10 +696,8 @@ class Store(context: Context) {
         private const val KEY_FINGERPRINT = "use_fingerprint"
         private const val KEY_VOICE = "voice_reminders"
         private const val KEY_THEME = "theme"
-        private const val KEY_OFFER_EXTRA = "offer_extra"
         private const val KEY_HISTORY = "history"
         private const val HISTORY_DAYS = 14L
-        const val EXTRA_MINUTES = 3
         private const val KEY_MY_APPS = "my_apps"
         private const val KEY_HOURS_ON = "hours_on"
         private const val KEY_HOURS_FROM = "hours_from"

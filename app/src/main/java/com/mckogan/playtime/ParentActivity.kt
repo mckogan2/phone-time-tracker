@@ -497,12 +497,6 @@ class ParentActivity : Activity() {
         }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         voiceRow.addView(Ui.button(this, getString(R.string.voice_try), Ui.MUTED, 15f) { Voice.play(this, 5) })
         root.add(voiceRow, topMarginDp = 8)
-        root.add(Ui.switch(this).apply {
-            text = getString(R.string.extra_setting, Store.EXTRA_MINUTES)
-            textSize = 16f
-            isChecked = store.offerExtra
-            setOnCheckedChangeListener { _, checked -> store.offerExtra = checked }
-        }, topMarginDp = 8)
     }
 
     private fun phonePage(root: LinearLayout) {
@@ -784,9 +778,18 @@ class ParentActivity : Activity() {
             setText((kid?.dailyMinutes ?: Store.DEFAULT_MINUTES).toString())
             inputType = InputType.TYPE_CLASS_NUMBER
         }
+        // Math level for earning time: a 5-year-old and a 7-year-old need different numbers.
+        val levels = RadioGroup(this)
+        levels.addView(RadioButton(this).apply { id = 1; text = getString(R.string.math_level_1); textSize = 16f })
+        levels.addView(RadioButton(this).apply { id = 2; text = getString(R.string.math_level_2); textSize = 16f })
+        levels.check(if ((kid?.mathLevel ?: 1) >= 2) 2 else 1)
         val form = Ui.column(this, 20).apply {
             addView(name)
             addView(minutes)
+            addView(Ui.text(this@ParentActivity, getString(R.string.row_math_level), 16f, bold = true).apply {
+                setPadding(0, dp(12), 0, 0)
+            })
+            addView(levels)
         }
         val mode = store.kidLockMode
         var picture = kid?.secretPicture
@@ -829,7 +832,8 @@ class ParentActivity : Activity() {
                 val n = name.text.toString().trim()
                 val m = minutes.text.toString().toIntOrNull()?.coerceIn(0, 24 * 60)
                 if (n.isNotEmpty() && m != null) {
-                    val id = if (kid == null) store.addKid(n, m) else kid.id.also { store.updateKid(it, n, m) }
+                    val level = if (levels.checkedRadioButtonId == 2) 2 else 1
+                    val id = if (kid == null) store.addKid(n, m, level) else kid.id.also { store.updateKid(it, n, m, level) }
                     if (mode == Store.LOCK_PICTURE && picture != kid?.secretPicture) store.setSecretPicture(id, picture)
                     val code = number.text.toString()
                     if (mode == Store.LOCK_NUMBER && code.length == Store.KID_NUMBER_LENGTH) store.setSecretNumber(id, code)

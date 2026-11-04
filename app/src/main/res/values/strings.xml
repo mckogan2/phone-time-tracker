@@ -185,6 +185,16 @@
     <string name="value_not_connected">Not connected</string>
     <string name="settings_back">‹ Settings</string>
     <string name="tomorrow_label">Tomorrow: %1$s</string>
+    <string name="earn_title">Earn more time</string>
+    <string name="earn_progress">Earned today: %1$s of %2$s</string>
+    <string name="earn_play">▶ Play (%1$s left)</string>
+    <string name="earn_check">✓ Check</string>
+    <string name="earn_correct">Correct! +%1$s</string>
+    <string name="earn_wrong">Not this one. Next question.</string>
+    <string name="earn_done_today">You reached today's limit for extra time.</string>
+    <string name="row_math_level">Math level</string>
+    <string name="math_level_1">Up to 200 (+ − ×)</string>
+    <string name="math_level_2">Up to 1000 (+ −)</string>
     <string name="row_from">From</string>
     <string name="row_to">To</string>
     <string name="refresh_done">Time updated</string>
@@ -211,10 +221,6 @@
     <string name="stats_extra_declined">3 more minutes said no: %1$d</string>
     <string name="stats_more_asked">Want more? asked for my apps: %1$d</string>
     <string name="stats_this_phone">These numbers are from this phone only.</string>
-    <string name="extra_offer">Want %1$d more minutes?</string>
-    <string name="extra_yes">✅ Yes</string>
-    <string name="extra_no">❌ No</string>
-    <string name="extra_setting">When time is up, offer %1$d more minutes (once a day)</string>
     <string name="theme">🌓 Theme: %1$s</string>
     <string name="theme_system">Follow phone</string>
     <string name="theme_light">Light</string>

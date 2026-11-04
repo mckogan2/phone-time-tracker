@@ -189,6 +189,16 @@
     <string name="value_not_connected">לא מחובר</string>
     <string name="settings_back">‹ הגדרות</string>
     <string name="tomorrow_label">מחר: %1$s</string>
+    <string name="earn_title">לקבל עוד זמן</string>
+    <string name="earn_progress">הרווחתם היום: %1$s מתוך %2$s</string>
+    <string name="earn_play">▶ לשחק (נשאר %1$s)</string>
+    <string name="earn_check">✓ בדיקה</string>
+    <string name="earn_correct">נכון! +%1$s</string>
+    <string name="earn_wrong">לא זה. השאלה הבאה.</string>
+    <string name="earn_done_today">הגעתם למכסה של זמן נוסף להיום.</string>
+    <string name="row_math_level">רמת חשבון</string>
+    <string name="math_level_1">עד 200 (+ − ×)</string>
+    <string name="math_level_2">עד 1000 (+ −)</string>
     <string name="row_from">התחלה</string>
     <string name="row_to">סיום</string>
     <string name="refresh_done">הזמן עודכן</string>
@@ -215,10 +225,6 @@
     <string name="stats_extra_declined">נאמר לא ל-3 דקות נוספות: %1$d</string>
     <string name="stats_more_asked">רוצה עוד לאפליקציות שלי: %1$d</string>
     <string name="stats_this_phone">המספרים האלה הם מהטלפון הזה בלבד.</string>
-    <string name="extra_offer">רוצה עוד %1$d דקות?</string>
-    <string name="extra_yes">✅ כן</string>
-    <string name="extra_no">❌ לא</string>
-    <string name="extra_setting">כשהזמן נגמר: להציע עוד %1$d דקות (פעם ביום)</string>
     <string name="theme">🌓 ערכת צבעים: %1$s</string>
     <string name="theme_system">לפי הטלפון</string>
     <string name="theme_light">בהיר</string>
