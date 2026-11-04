@@ -219,13 +219,6 @@ class MainActivity : Activity() {
                     topMarginDp = 16,
                 )
                 card.add(dotsRow(), topMarginDp = 12)
-                if (left <= 0 && sessions < Store.MATH_SESSIONS_PER_DAY) {
-                    card.add(Ui.button(this, getString(R.string.earn_next), Ui.ACCENT) {
-                        mathResults.clear()
-                        mathQuestion = MathPuzzle.make(kid.mathLevel)
-                        render()
-                    }, topMarginDp = 12)
-                }
             }
             sessions >= Store.MATH_SESSIONS_PER_DAY -> {
                 card.add(Ui.text(this, getString(R.string.earn_done_today), 18f, center = true), topMarginDp = 16)
