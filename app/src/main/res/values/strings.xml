@@ -191,7 +191,7 @@
     <string name="earn_check">✓ Check</string>
     <string name="earn_correct">Correct! +%1$s</string>
     <string name="earn_wrong">Not this one. Next question.</string>
-    <string name="earn_done_today">You reached today's limit for extra time.</string>
+    <string name="earn_done_today">You reached today\'s limit for extra time.</string>
     <string name="row_math_level">Math level</string>
     <string name="math_level_1">Up to 200 (+ − ×)</string>
     <string name="math_level_2">Up to 1000 (+ −)</string>
