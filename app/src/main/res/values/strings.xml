@@ -186,6 +186,13 @@
     <string name="settings_back">‹ Settings</string>
     <string name="tomorrow_label">Tomorrow: %1$s</string>
     <string name="earn_title">Earn more time</string>
+    <string name="row_extra">Time after it runs out</string>
+    <string name="extra_short_questions">Questions</string>
+    <string name="extra_short_minutes">+3 min</string>
+    <string name="extra_questions_long">Solve 10 questions</string>
+    <string name="extra_minutes_long">+3 minutes, once a day</string>
+    <string name="extra_play">▶ Play +3 min</string>
+    <string name="extra_done">You already got it today.</string>
     <string name="earn_sessions_today">Sessions today: %1$d of %2$d</string>
     <string name="earn_question">Question %1$d of %2$d</string>
     <string name="earn_session_result">%1$d of %2$d right: +%3$s</string>

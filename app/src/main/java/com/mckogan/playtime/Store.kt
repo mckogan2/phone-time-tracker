@@ -158,6 +158,18 @@ class Store(context: Context) {
 
     // ---- "Who's playing" protection ----
 
+    /** When time runs out: [EXTRA_METHOD_QUESTIONS] (solve questions) or [EXTRA_METHOD_MINUTES] (+3 minutes once a day). */
+    var extraMethod: String
+        get() = prefs.getString(KEY_EXTRA_METHOD, EXTRA_METHOD_QUESTIONS) ?: EXTRA_METHOD_QUESTIONS
+        set(value) {
+            prefs.edit().putString(KEY_EXTRA_METHOD, value).apply()
+            sharedChanged()
+        }
+
+    fun extraMinutesTakenToday(kidId: String): Boolean = prefs.getString("extra_taken_$kidId", null) == today()
+
+    fun markExtraMinutesTaken(kidId: String) = prefs.edit().putString("extra_taken_$kidId", today()).apply()
+
     var kidLockMode: String
         get() = prefs.getString(KEY_KID_LOCK, LOCK_OFF) ?: LOCK_OFF
         set(value) {
@@ -609,6 +621,7 @@ class Store(context: Context) {
         "addedGames" to addedGames().toList(),
         "excludedGames" to excludedGames().toList(),
         "kidLockMode" to kidLockMode,
+        "extraMethod" to extraMethod,
         "pinHash" to prefs.getString(KEY_PIN_HASH, null),
         "pinSalt" to prefs.getString(KEY_PIN_SALT, null),
         "protectSettings" to protectSettings,
@@ -626,6 +639,7 @@ class Store(context: Context) {
         (data["addedGames"] as? List<*>)?.let { e.putStringSet(KEY_GAMES, it.filterIsInstance<String>().toSet()) }
         (data["excludedGames"] as? List<*>)?.let { e.putStringSet(KEY_EXCLUDED_GAMES, it.filterIsInstance<String>().toSet()) }
         (data["kidLockMode"] as? String)?.let { e.putString(KEY_KID_LOCK, it) }
+        (data["extraMethod"] as? String)?.let { e.putString(KEY_EXTRA_METHOD, it) }
         val pinHash = data["pinHash"] as? String
         val pinSalt = data["pinSalt"] as? String
         if (pinHash != null && pinSalt != null) e.putString(KEY_PIN_HASH, pinHash).putString(KEY_PIN_SALT, pinSalt)
@@ -736,6 +750,11 @@ class Store(context: Context) {
         private const val KEY_PROTECT_SETTINGS = "protect_settings"
         private const val KEY_SETTINGS_UNTIL = "settings_until"
         private const val KEY_KID_LOCK = "kid_lock_mode"
+        private const val KEY_EXTRA_METHOD = "extra_method"
+        const val EXTRA_METHOD_QUESTIONS = "questions"
+        const val EXTRA_METHOD_MINUTES = "minutes"
+        /** Minutes given by the "+3 minutes" method, once a day. */
+        const val EXTRA_MINUTES_ONCE = 3
         private const val KEY_PHONE_ID = "phone_id"
         private const val KEY_FAMILY_ID = "family_id"
         private const val KEY_SETTINGS_UPDATED = "settings_updated"

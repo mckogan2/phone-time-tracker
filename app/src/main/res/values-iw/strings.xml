@@ -190,6 +190,13 @@
     <string name="settings_back">‹ הגדרות</string>
     <string name="tomorrow_label">מחר: %1$s</string>
     <string name="earn_title">לקבל עוד זמן</string>
+    <string name="row_extra">זמן אחרי שהזמן נגמר</string>
+    <string name="extra_short_questions">שאלות</string>
+    <string name="extra_short_minutes">+3 דק׳</string>
+    <string name="extra_questions_long">לפתור 10 שאלות</string>
+    <string name="extra_minutes_long">+3 דקות, פעם ביום</string>
+    <string name="extra_play">▶ לשחק +3 דק׳</string>
+    <string name="extra_done">כבר קיבלתם היום.</string>
     <string name="earn_sessions_today">סבבים היום: %1$d מתוך %2$d</string>
     <string name="earn_question">שאלה %1$d מתוך %2$d</string>
     <string name="earn_session_result">%1$d מתוך %2$d נכון: +%3$s</string>

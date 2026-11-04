@@ -319,6 +319,7 @@ class ParentActivity : Activity() {
             }
             PAGE_VOICE -> voicePage(root)
             PAGE_PHONE -> phonePage(root)
+            PAGE_EXTRA -> extraPage(root)
             PAGE_UPDATE -> updatePage(root)
         }
     }
@@ -379,6 +380,10 @@ class ParentActivity : Activity() {
             settingsRow(group, "🔊", getString(R.string.row_voice), getString(if (store.voiceReminders) R.string.value_on else R.string.value_off)) {
                 openPage(PAGE_VOICE)
             }
+            settingsRow(
+                group, "⏱", getString(R.string.row_extra),
+                getString(if (store.extraMethod == Store.EXTRA_METHOD_MINUTES) R.string.extra_short_minutes else R.string.extra_short_questions),
+            ) { openPage(PAGE_EXTRA) }
             settingsRow(group, "🎨", getString(R.string.row_theme), themeLabel(store.theme)) { chooseTheme() }
         }
         settingsGroup(root, R.string.group_phone) { group ->
@@ -497,6 +502,23 @@ class ParentActivity : Activity() {
         }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         voiceRow.addView(Ui.button(this, getString(R.string.voice_try), Ui.MUTED, 15f) { Voice.play(this, 5) })
         root.add(voiceRow, topMarginDp = 8)
+    }
+
+    /** What a kid gets when their time runs out: solving questions, or +3 minutes once a day. */
+    private fun extraPage(root: LinearLayout) {
+        pageTitle(root, R.string.row_extra)
+        val group = Ui.column(this).apply { background = Ui.rounded(Ui.CARD, 20, this@ParentActivity) }
+        root.add(group, topMarginDp = 8)
+        for ((method, label) in listOf(
+            Store.EXTRA_METHOD_QUESTIONS to R.string.extra_questions_long,
+            Store.EXTRA_METHOD_MINUTES to R.string.extra_minutes_long,
+        )) {
+            val selected = store.extraMethod == method
+            settingsRow(group, if (method == Store.EXTRA_METHOD_QUESTIONS) "🧮" else "⏱", getString(label), if (selected) "✓" else "") {
+                store.extraMethod = method
+                render()
+            }
+        }
     }
 
     private fun phonePage(root: LinearLayout) {
@@ -951,6 +973,7 @@ class ParentActivity : Activity() {
         private const val PAGE_VOICE = "voice"
         private const val PAGE_PHONE = "phone"
         private const val PAGE_UPDATE = "update"
+        private const val PAGE_EXTRA = "extra"
         private val OK_GREEN = 0xFF2E9E5B.toInt()
         private val THEMES = listOf(Ui.THEME_SYSTEM, Ui.THEME_LIGHT, Ui.THEME_DARK)
         private const val REQUEST_PHOTO = 7
