@@ -32,7 +32,7 @@ object Facts {
     private const val MAX_ATTEMPTS = 6
     private const val SEEN_MAX = 200
     private const val TITLES_TTL_MS = 7L * 24 * 60 * 60 * 1000
-    private const val USER_AGENT = "PlayTime/1.0 (family parental-control app)"
+    private const val USER_AGENT = "PlayTime/1.0 (https://github.com/mckogan2/phone-time-tracker)"
 
     /** Tried in order; the first that works is remembered. Free "Flash-Lite" class models. */
     private val MODELS = listOf("gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash-lite")
